@@ -1,13 +1,12 @@
 import { useGameStore } from '@/store/gameStore'
 import { Planet } from './Planet'
 
-export function SolarMap() {
-  const planets = useGameStore((state) => state.planets)
+interface SolarMapProps {
+  onPlanetClick: (planetId: number) => void
+}
 
-  const handlePlanetClick = (planetId: number) => {
-    // Navigation to game screen will be implemented in Epic 2
-    console.log(`Planet ${planetId} clicked`)
-  }
+export function SolarMap({ onPlanetClick }: SolarMapProps) {
+  const planets = useGameStore((state) => state.planets)
 
   return (
     <div className="flex-1 flex items-center justify-center p-4">
@@ -16,7 +15,7 @@ export function SolarMap() {
           <div key={planet.id} className="flex items-center justify-center">
             <Planet
               planet={planet}
-              onClick={() => handlePlanetClick(planet.id)}
+              onClick={() => onPlanetClick(planet.id)}
             />
           </div>
         ))}

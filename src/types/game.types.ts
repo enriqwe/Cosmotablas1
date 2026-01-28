@@ -14,3 +14,17 @@ export interface GameState {
   planets: Planet[]
   totalStars: number
 }
+
+export interface Question {
+  id: string
+  table: number
+  multiplier: number
+  correctAnswer: number
+}
+
+export interface SessionAnswer {
+  questionId: string
+  userAnswer: number | null
+  attempts: number
+  isCorrect: boolean
+}
