@@ -1,9 +1,16 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SolarMap } from '@/features/solar-map/SolarMap'
 import { GameSession } from '@/features/gameplay/GameSession'
-import { CelebrationScreen } from '@/features/progression/CelebrationScreen'
 import { StarCounter } from '@/components/layout/StarCounter'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+
+// Lazy load non-critical components
+const CelebrationScreen = lazy(() =>
+  import('@/features/progression/CelebrationScreen').then((module) => ({
+    default: module.CelebrationScreen,
+  }))
+)
 import { useSessionStore } from '@/store/sessionStore'
 import { useGameStore } from '@/store/gameStore'
 import { calculateStars } from '@/utils/starCalculator'
@@ -130,12 +137,14 @@ function App() {
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.3 }}
         >
-          <CelebrationScreen
-            stars={lastStars}
-            accuracy={lastAccuracy}
-            isFirstCompletion={isFirstCompletion}
-            onContinue={handleCelebrationContinue}
-          />
+          <Suspense fallback={<LoadingSpinner />}>
+            <CelebrationScreen
+              stars={lastStars}
+              accuracy={lastAccuracy}
+              isFirstCompletion={isFirstCompletion}
+              onContinue={handleCelebrationContinue}
+            />
+          </Suspense>
         </motion.div>
       )}
     </AnimatePresence>

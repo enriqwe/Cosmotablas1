@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { StarLevel } from '@/types/game.types'
+import { ParticleSystem } from '@/components/game/ParticleSystem'
 
 interface CelebrationScreenProps {
   stars: StarLevel
@@ -29,6 +30,8 @@ export function CelebrationScreen({
   isFirstCompletion,
   onContinue,
 }: CelebrationScreenProps) {
+  const [showParticles, setShowParticles] = useState(stars > 0)
+
   // Auto-advance after 3 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -37,6 +40,14 @@ export function CelebrationScreen({
 
     return () => clearTimeout(timer)
   }, [onContinue])
+
+  // Stop particles after duration
+  useEffect(() => {
+    if (showParticles) {
+      const timer = setTimeout(() => setShowParticles(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showParticles])
 
   const renderStars = () => {
     const starElements = []
@@ -63,7 +74,10 @@ export function CelebrationScreen({
   }
 
   return (
-    <div className="min-h-screen bg-space-dark flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-space-dark flex flex-col items-center justify-center p-6 relative">
+      {/* Particle celebration effect */}
+      <ParticleSystem isActive={showParticles} duration={3000} />
+
       {/* Title */}
       <motion.h1
         initial={{ y: -50, opacity: 0 }}
