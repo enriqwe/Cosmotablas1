@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import type { StarLevel } from '@/types/game.types'
+import type { StarLevel, SessionResult } from '@/types/game.types'
 import { ParticleSystem } from '@/components/game/ParticleSystem'
 
 interface CelebrationScreenProps {
   stars: StarLevel
-  accuracy: number
+  sessionResult: SessionResult
   isFirstCompletion: boolean
   onContinue: () => void
 }
@@ -24,22 +24,30 @@ const starColors: Record<StarLevel, string> = {
   3: 'text-yellow-400',
 }
 
+function formatTime(ms: number): string {
+  const seconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`
+  }
+  return `${remainingSeconds}s`
+}
+
+function formatAverageTime(ms: number): string {
+  if (ms < 1000) {
+    return `${ms}ms`
+  }
+  return `${(ms / 1000).toFixed(1)}s`
+}
+
 export function CelebrationScreen({
   stars,
-  accuracy,
+  sessionResult,
   isFirstCompletion,
   onContinue,
 }: CelebrationScreenProps) {
   const [showParticles, setShowParticles] = useState(stars > 0)
-
-  // Auto-advance after 3 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onContinue()
-    }, 3000)
-
-    return () => clearTimeout(timer)
-  }, [onContinue])
 
   // Stop particles after duration
   useEffect(() => {
@@ -83,39 +91,69 @@ export function CelebrationScreen({
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="text-3xl font-bold text-white mb-8 text-center"
+        className="text-3xl font-bold text-white mb-6 text-center"
       >
         {isFirstCompletion ? '¡Planeta Conquistado!' : '¡Misión Completada!'}
       </motion.h1>
 
       {/* Animated Stars */}
       <motion.div
-        className="flex gap-4 mb-8"
+        className="flex gap-4 mb-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
         {renderStars()}
       </motion.div>
 
-      {/* Accuracy */}
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ delay: 0.8, type: 'spring' }}
-        className="text-6xl font-bold text-white mb-4"
-      >
-        {accuracy}%
-      </motion.div>
-
       {/* Message */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="text-xl text-space-blue mb-8"
+        transition={{ delay: 0.8 }}
+        className="text-xl text-space-blue mb-6"
       >
         {starMessages[stars]}
       </motion.p>
+
+      {/* Stats Grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1 }}
+        className="grid grid-cols-2 gap-4 mb-8 w-full max-w-xs"
+      >
+        {/* Total Time */}
+        <div className="bg-space-navy rounded-lg p-4 text-center">
+          <p className="text-white/60 text-sm mb-1">Tiempo total</p>
+          <p className="text-white text-xl font-bold">
+            {formatTime(sessionResult.totalTimeMs)}
+          </p>
+        </div>
+
+        {/* Average Response */}
+        <div className="bg-space-navy rounded-lg p-4 text-center">
+          <p className="text-white/60 text-sm mb-1">Velocidad media</p>
+          <p className="text-white text-xl font-bold">
+            {formatAverageTime(sessionResult.averageResponseTimeMs)}
+          </p>
+        </div>
+
+        {/* Correct */}
+        <div className="bg-space-navy rounded-lg p-4 text-center">
+          <p className="text-white/60 text-sm mb-1">Aciertos</p>
+          <p className="text-success text-xl font-bold">
+            {sessionResult.correctCount}
+          </p>
+        </div>
+
+        {/* Wrong */}
+        <div className="bg-space-navy rounded-lg p-4 text-center">
+          <p className="text-white/60 text-sm mb-1">Fallos</p>
+          <p className="text-warning text-xl font-bold">
+            {sessionResult.wrongCount}
+          </p>
+        </div>
+      </motion.div>
 
       {/* Continue button */}
       <motion.button

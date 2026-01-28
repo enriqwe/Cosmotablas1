@@ -4,9 +4,10 @@ import { useSessionStore } from '@/store/sessionStore'
 import { NumericKeyboard } from '@/components/game/NumericKeyboard'
 import { QuestionCard } from '@/components/game/QuestionCard'
 import { ProgressIndicator } from '@/components/game/ProgressIndicator'
+import type { SessionResult } from '@/types/game.types'
 
 interface GameSessionProps {
-  onSessionEnd: (accuracy: number) => void
+  onSessionEnd: (result: SessionResult) => void
   onExit: () => void
 }
 
@@ -56,8 +57,8 @@ export function GameSession({ onSessionEnd, onExit }: GameSessionProps) {
           nextQuestion()
         } else {
           // Session complete
-          const accuracy = endSession()
-          onSessionEnd(accuracy)
+          const result = endSession()
+          onSessionEnd(result)
         }
       }, 1000)
     } else {

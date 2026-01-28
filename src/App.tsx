@@ -15,13 +15,21 @@ import { useSessionStore } from '@/store/sessionStore'
 import { useGameStore } from '@/store/gameStore'
 import { calculateStars } from '@/utils/starCalculator'
 import { APP_NAME } from '@/constants/config'
-import type { StarLevel } from '@/types/game.types'
+import type { StarLevel, SessionResult } from '@/types/game.types'
 
 type Screen = 'map' | 'game' | 'celebration'
 
+const initialSessionResult: SessionResult = {
+  accuracy: 0,
+  correctCount: 0,
+  wrongCount: 0,
+  totalTimeMs: 0,
+  averageResponseTimeMs: 0,
+}
+
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('map')
-  const [lastAccuracy, setLastAccuracy] = useState<number>(0)
+  const [lastSessionResult, setLastSessionResult] = useState<SessionResult>(initialSessionResult)
   const [lastStars, setLastStars] = useState<StarLevel>(0)
   const [isFirstCompletion, setIsFirstCompletion] = useState<boolean>(false)
   const [activePlanetId, setActivePlanetId] = useState<number | null>(null)
@@ -49,14 +57,14 @@ function App() {
     setCurrentScreen('game')
   }, [planets, startSession])
 
-  const handleSessionEnd = useCallback((accuracy: number) => {
-    const stars = calculateStars(accuracy)
-    setLastAccuracy(accuracy)
+  const handleSessionEnd = useCallback((result: SessionResult) => {
+    const stars = calculateStars(result.accuracy)
+    setLastSessionResult(result)
     setLastStars(stars)
 
     // Update game store with stars
     if (activePlanetId !== null) {
-      updatePlanetStars(activePlanetId, stars, accuracy)
+      updatePlanetStars(activePlanetId, stars, result.accuracy)
 
       // Track newly unlocked planet for animation (next planet if stars > 0 and first completion)
       if (stars > 0 && isFirstCompletion) {
@@ -140,7 +148,7 @@ function App() {
           <Suspense fallback={<LoadingSpinner />}>
             <CelebrationScreen
               stars={lastStars}
-              accuracy={lastAccuracy}
+              sessionResult={lastSessionResult}
               isFirstCompletion={isFirstCompletion}
               onContinue={handleCelebrationContinue}
             />

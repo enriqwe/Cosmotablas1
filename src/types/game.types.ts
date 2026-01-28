@@ -27,4 +27,13 @@ export interface SessionAnswer {
   userAnswer: number | null
   attempts: number
   isCorrect: boolean
+  responseTimeMs: number | null
+}
+
+export interface SessionResult {
+  accuracy: number
+  correctCount: number
+  wrongCount: number
+  totalTimeMs: number
+  averageResponseTimeMs: number
 }
