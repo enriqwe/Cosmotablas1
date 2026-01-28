@@ -3,9 +3,10 @@ import { Planet } from './Planet'
 
 interface SolarMapProps {
   onPlanetClick: (planetId: number) => void
+  newlyUnlockedPlanetId?: number | null
 }
 
-export function SolarMap({ onPlanetClick }: SolarMapProps) {
+export function SolarMap({ onPlanetClick, newlyUnlockedPlanetId }: SolarMapProps) {
   const planets = useGameStore((state) => state.planets)
 
   return (
@@ -16,6 +17,7 @@ export function SolarMap({ onPlanetClick }: SolarMapProps) {
             <Planet
               planet={planet}
               onClick={() => onPlanetClick(planet.id)}
+              showUnlockAnimation={planet.id === newlyUnlockedPlanetId}
             />
           </div>
         ))}

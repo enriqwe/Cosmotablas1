@@ -2,19 +2,27 @@ import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SolarMap } from '@/features/solar-map/SolarMap'
 import { GameSession } from '@/features/gameplay/GameSession'
+import { CelebrationScreen } from '@/features/progression/CelebrationScreen'
 import { StarCounter } from '@/components/layout/StarCounter'
 import { useSessionStore } from '@/store/sessionStore'
 import { useGameStore } from '@/store/gameStore'
+import { calculateStars } from '@/utils/starCalculator'
 import { APP_NAME } from '@/constants/config'
+import type { StarLevel } from '@/types/game.types'
 
 type Screen = 'map' | 'game' | 'celebration'
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('map')
-  const [_lastAccuracy, setLastAccuracy] = useState<number>(0)
+  const [lastAccuracy, setLastAccuracy] = useState<number>(0)
+  const [lastStars, setLastStars] = useState<StarLevel>(0)
+  const [isFirstCompletion, setIsFirstCompletion] = useState<boolean>(false)
+  const [activePlanetId, setActivePlanetId] = useState<number | null>(null)
+  const [newlyUnlockedPlanetId, setNewlyUnlockedPlanetId] = useState<number | null>(null)
 
   const startSession = useSessionStore((state) => state.startSession)
   const planets = useGameStore((state) => state.planets)
+  const updatePlanetStars = useGameStore((state) => state.updatePlanetStars)
 
   const handlePlanetClick = useCallback((planetId: number) => {
     const planet = planets.find((p) => p.id === planetId)
@@ -25,15 +33,41 @@ function App() {
       return
     }
 
+    // Track if this is first completion (planet not yet completed)
+    setIsFirstCompletion(planet.status !== 'completed')
+    setActivePlanetId(planetId)
+
     // Start session for unlocked or completed planets
     startSession(planetId, planet.table)
     setCurrentScreen('game')
   }, [planets, startSession])
 
   const handleSessionEnd = useCallback((accuracy: number) => {
+    const stars = calculateStars(accuracy)
     setLastAccuracy(accuracy)
-    // For now, just go back to map. Celebration screen will be added in Epic 3
+    setLastStars(stars)
+
+    // Update game store with stars
+    if (activePlanetId !== null) {
+      updatePlanetStars(activePlanetId, stars, accuracy)
+
+      // Track newly unlocked planet for animation (next planet if stars > 0 and first completion)
+      if (stars > 0 && isFirstCompletion) {
+        setNewlyUnlockedPlanetId(activePlanetId + 1)
+      }
+    }
+
+    // Show celebration screen
+    setCurrentScreen('celebration')
+  }, [activePlanetId, updatePlanetStars, isFirstCompletion])
+
+  const handleCelebrationContinue = useCallback(() => {
+    setActivePlanetId(null)
     setCurrentScreen('map')
+    // Clear the animation flag after a delay to let the animation play
+    setTimeout(() => {
+      setNewlyUnlockedPlanetId(null)
+    }, 2000)
   }, [])
 
   const handleExit = useCallback(() => {
@@ -66,7 +100,10 @@ function App() {
           <StarCounter />
 
           {/* Main Content - Solar Map */}
-          <SolarMap onPlanetClick={handlePlanetClick} />
+          <SolarMap
+            onPlanetClick={handlePlanetClick}
+            newlyUnlockedPlanetId={newlyUnlockedPlanetId}
+          />
         </motion.div>
       )}
 
@@ -81,6 +118,23 @@ function App() {
           <GameSession
             onSessionEnd={handleSessionEnd}
             onExit={handleExit}
+          />
+        </motion.div>
+      )}
+
+      {currentScreen === 'celebration' && (
+        <motion.div
+          key="celebration"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.3 }}
+        >
+          <CelebrationScreen
+            stars={lastStars}
+            accuracy={lastAccuracy}
+            isFirstCompletion={isFirstCompletion}
+            onContinue={handleCelebrationContinue}
           />
         </motion.div>
       )}

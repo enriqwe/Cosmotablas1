@@ -4,6 +4,7 @@ import type { Planet as PlanetType } from '@/types/game.types'
 interface PlanetProps {
   planet: PlanetType
   onClick: () => void
+  showUnlockAnimation?: boolean
 }
 
 const planetColors: Record<number, string> = {
@@ -17,12 +18,28 @@ const planetColors: Record<number, string> = {
   9: '#ec4899', // pink
 }
 
-export function Planet({ planet, onClick }: PlanetProps) {
+export function Planet({ planet, onClick, showUnlockAnimation }: PlanetProps) {
   const isLocked = planet.status === 'locked'
   const isCompleted = planet.status === 'completed'
   const isUnlocked = planet.status === 'unlocked'
 
   const baseColor = planetColors[planet.table] || '#6b7280'
+
+  // Unlock animation variants
+  const unlockVariants = {
+    initial: { scale: 0.5, opacity: 0, rotate: -180 },
+    animate: {
+      scale: 1,
+      opacity: 1,
+      rotate: 0,
+      transition: {
+        type: 'spring' as const,
+        stiffness: 200,
+        damping: 15,
+        delay: 0.3,
+      },
+    },
+  }
 
   return (
     <motion.button
@@ -38,18 +55,29 @@ export function Planet({ planet, onClick }: PlanetProps) {
       style={{ backgroundColor: baseColor }}
       whileHover={!isLocked ? { scale: 1.1 } : undefined}
       whileTap={!isLocked ? { scale: 0.95 } : undefined}
-      animate={isUnlocked ? {
-        boxShadow: [
-          '0 0 20px rgba(37, 99, 235, 0.5)',
-          '0 0 40px rgba(37, 99, 235, 0.7)',
-          '0 0 20px rgba(37, 99, 235, 0.5)',
-        ]
-      } : undefined}
-      transition={isUnlocked ? {
-        duration: 2,
-        repeat: Infinity,
-        ease: 'easeInOut'
-      } : undefined}
+      initial={showUnlockAnimation ? unlockVariants.initial : false}
+      animate={
+        showUnlockAnimation
+          ? unlockVariants.animate
+          : isUnlocked
+            ? {
+                boxShadow: [
+                  '0 0 20px rgba(37, 99, 235, 0.5)',
+                  '0 0 40px rgba(37, 99, 235, 0.7)',
+                  '0 0 20px rgba(37, 99, 235, 0.5)',
+                ],
+              }
+            : undefined
+      }
+      transition={
+        !showUnlockAnimation && isUnlocked
+          ? {
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }
+          : undefined
+      }
     >
       {/* Planet number */}
       <span className="text-2xl font-bold text-white drop-shadow-lg">
