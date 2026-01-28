@@ -14,8 +14,8 @@ export default defineConfig({
       },
       includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.svg'],
       manifest: {
-        name: 'Tablas1 - Aprende Multiplicaciones',
-        short_name: 'Tablas1',
+        name: 'Cosmotablas - Aprende Multiplicaciones',
+        short_name: 'Cosmotablas',
         description: 'Aprende las tablas de multiplicar explorando el espacio',
         theme_color: '#0a0e27',
         background_color: '#0a0e27',
