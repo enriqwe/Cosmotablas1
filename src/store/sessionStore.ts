@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Question, SessionAnswer, SessionResult } from '@/types/game.types'
 import { generateQuestions } from '@/utils/questionGenerator'
 
-const QUESTIONS_PER_SESSION = 10
+const QUESTIONS_PER_SESSION = 8
 
 interface SessionStore {
   isPlaying: boolean

@@ -4,6 +4,7 @@ import { useSessionStore } from '@/store/sessionStore'
 import { NumericKeyboard } from '@/components/game/NumericKeyboard'
 import { QuestionCard } from '@/components/game/QuestionCard'
 import { ProgressIndicator } from '@/components/game/ProgressIndicator'
+import { FlyingRocket } from '@/components/game/FlyingRocket'
 import type { SessionResult } from '@/types/game.types'
 
 interface GameSessionProps {
@@ -26,6 +27,7 @@ export function GameSession({ onSessionEnd, onExit }: GameSessionProps) {
   } = useSessionStore()
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null)
+  const [showRocket, setShowRocket] = useState(false)
 
   const currentQuestion = getCurrentQuestion()
 
@@ -50,6 +52,10 @@ export function GameSession({ onSessionEnd, onExit }: GameSessionProps) {
     setFeedback(isCorrect ? 'correct' : 'incorrect')
 
     if (isCorrect) {
+      // Show flying rocket animation
+      setShowRocket(true)
+      setTimeout(() => setShowRocket(false), 1200)
+
       // Auto-advance after correct answer
       setTimeout(() => {
         setFeedback(null)
@@ -90,7 +96,10 @@ export function GameSession({ onSessionEnd, onExit }: GameSessionProps) {
   }
 
   return (
-    <div className="min-h-screen bg-space-dark flex flex-col">
+    <div className="min-h-screen bg-space-dark flex flex-col overflow-hidden">
+      {/* Flying rocket animation on correct answer */}
+      <FlyingRocket isVisible={showRocket} />
+
       {/* Header with exit button */}
       <div className="flex items-center justify-between p-4">
         <motion.button

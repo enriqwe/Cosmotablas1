@@ -9,21 +9,15 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled
 }
 
-export function generateQuestions(table: number, count: number = 20): Question[] {
-  // Generate multipliers from 1 to 10 (or 12 for more variety)
-  const multipliers = Array.from({ length: 10 }, (_, i) => i + 1)
+// Multipliers 2-9 only (8 questions per session)
+const MULTIPLIERS = [2, 3, 4, 5, 6, 7, 8, 9]
 
-  // Shuffle to randomize order
-  const shuffledMultipliers = shuffleArray(multipliers)
+export function generateQuestions(table: number, count: number = 8): Question[] {
+  // Shuffle multipliers to randomize order
+  const shuffledMultipliers = shuffleArray([...MULTIPLIERS])
 
-  // Take only the requested count (max 10 unique multipliers)
-  const selectedMultipliers = shuffledMultipliers.slice(0, Math.min(count, 10))
-
-  // If we need more than 10 questions, add duplicates with different order
-  while (selectedMultipliers.length < count) {
-    const additionalMultipliers = shuffleArray([...multipliers])
-    selectedMultipliers.push(...additionalMultipliers.slice(0, count - selectedMultipliers.length))
-  }
+  // Take only the requested count (max 8 unique multipliers)
+  const selectedMultipliers = shuffledMultipliers.slice(0, Math.min(count, MULTIPLIERS.length))
 
   // Create questions
   return selectedMultipliers.map((multiplier, index) => ({

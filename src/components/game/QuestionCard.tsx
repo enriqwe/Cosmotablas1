@@ -9,61 +9,75 @@ interface QuestionCardProps {
 
 export function QuestionCard({ question, userAnswer, feedback }: QuestionCardProps) {
   return (
-    <motion.div
-      className="bg-space-navy rounded-2xl p-8 mx-4 relative overflow-hidden"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      {/* Question */}
-      <div className="text-center mb-6">
-        <span className="text-4xl font-bold text-white">
-          {question.table} × {question.multiplier} =
-        </span>
-        <span className="text-4xl font-bold text-gold ml-2">
-          {userAnswer || '?'}
-        </span>
+    <div className="flex flex-col items-center">
+      {/* Question Card */}
+      <motion.div
+        className={`bg-space-navy rounded-2xl p-8 mx-4 border-4 transition-colors duration-300 ${
+          feedback === 'correct'
+            ? 'border-success'
+            : feedback === 'incorrect'
+              ? 'border-warning'
+              : 'border-transparent'
+        }`}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        {/* Question */}
+        <div className="text-center">
+          <span className="text-4xl font-bold text-white">
+            {question.table} × {question.multiplier} =
+          </span>
+          <span className="text-4xl font-bold text-gold ml-2">
+            {userAnswer || '?'}
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Feedback Message - Below the card */}
+      <div className="h-16 flex items-center justify-center mt-4">
+        <AnimatePresence mode="wait">
+          {feedback === 'correct' && (
+            <motion.div
+              key="correct"
+              className="flex items-center gap-2"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <motion.span
+                className="text-4xl text-success"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                ✓
+              </motion.span>
+              <span className="text-xl font-bold text-success">¡Correcto!</span>
+            </motion.div>
+          )}
+
+          {feedback === 'incorrect' && (
+            <motion.div
+              key="incorrect"
+              className="flex items-center gap-2"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <motion.span
+                className="text-3xl"
+                animate={{ x: [0, -5, 5, -5, 5, 0] }}
+                transition={{ duration: 0.4 }}
+              >
+                ✗
+              </motion.span>
+              <span className="text-xl font-bold text-warning">¡Inténtalo de nuevo!</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-
-      {/* Feedback overlay */}
-      <AnimatePresence>
-        {feedback === 'correct' && (
-          <motion.div
-            className="absolute inset-0 bg-success/20 flex items-center justify-center"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <motion.span
-              className="text-6xl"
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-            >
-              ✓
-            </motion.span>
-          </motion.div>
-        )}
-
-        {feedback === 'incorrect' && (
-          <motion.div
-            className="absolute inset-0 bg-warning/10 flex items-center justify-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.p
-              className="text-2xl font-bold text-warning"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-            >
-              ¡Inténtalo de nuevo!
-            </motion.p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+    </div>
   )
 }
