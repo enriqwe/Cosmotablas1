@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { StarLevel, SessionResult } from '@/types/game.types'
 import { ParticleSystem } from '@/components/game/ParticleSystem'
+import { useSoundContext } from '@/contexts/SoundContext'
 
 interface CelebrationScreenProps {
   stars: StarLevel
   sessionResult: SessionResult
   isFirstCompletion: boolean
   onContinue: () => void
+  onRetry: () => void
 }
 
 const starMessages: Record<StarLevel, string> = {
@@ -46,8 +48,21 @@ export function CelebrationScreen({
   sessionResult,
   isFirstCompletion,
   onContinue,
+  onRetry,
 }: CelebrationScreenProps) {
   const [showParticles, setShowParticles] = useState(stars > 0)
+  const { playSound } = useSoundContext()
+
+  // Play celebration sound on mount
+  useEffect(() => {
+    if (stars > 0) {
+      playSound('celebration')
+      // Play unlock sound if new planet unlocked
+      if (isFirstCompletion) {
+        setTimeout(() => playSound('unlock'), 500)
+      }
+    }
+  }, [stars, isFirstCompletion, playSound])
 
   // Stop particles after duration
   useEffect(() => {
@@ -155,17 +170,31 @@ export function CelebrationScreen({
         </div>
       </motion.div>
 
-      {/* Continue button */}
-      <motion.button
+      {/* Action buttons */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2 }}
-        onClick={onContinue}
-        whileTap={{ scale: 0.95 }}
-        className="px-8 py-3 bg-space-blue text-white rounded-full text-lg font-semibold"
+        className="flex gap-4"
       >
-        Continuar
-      </motion.button>
+        {/* Retry button */}
+        <motion.button
+          onClick={onRetry}
+          whileTap={{ scale: 0.95 }}
+          className="px-6 py-3 bg-space-navy text-white rounded-full text-lg font-semibold border-2 border-space-purple/50 hover:bg-space-purple/20 transition-colors"
+        >
+          Reintentar
+        </motion.button>
+
+        {/* Continue button */}
+        <motion.button
+          onClick={onContinue}
+          whileTap={{ scale: 0.95 }}
+          className="px-8 py-3 bg-space-blue text-white rounded-full text-lg font-semibold"
+        >
+          Continuar
+        </motion.button>
+      </motion.div>
 
       {/* New planet unlocked message */}
       {isFirstCompletion && stars > 0 && (

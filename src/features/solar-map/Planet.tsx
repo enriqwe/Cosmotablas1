@@ -5,25 +5,93 @@ interface PlanetProps {
   planet: PlanetType
   onClick: () => void
   showUnlockAnimation?: boolean
+  size?: 'small' | 'medium' | 'large'
 }
 
-const planetColors: Record<number, string> = {
-  2: '#ef4444', // red
-  3: '#f97316', // orange
-  4: '#eab308', // yellow
-  5: '#22c55e', // green
-  6: '#06b6d4', // cyan
-  7: '#3b82f6', // blue
-  8: '#8b5cf6', // violet
-  9: '#ec4899', // pink
+// Planet visual configurations with gradients and textures
+const planetConfigs: Record<number, {
+  name: string
+  baseGradient: string
+  overlayGradient: string
+  atmosphereColor: string
+  features: string[]
+}> = {
+  2: {
+    name: 'Mercurio',
+    baseGradient: 'radial-gradient(circle at 30% 30%, #ff6b6b 0%, #c0392b 50%, #7f1d1d 100%)',
+    overlayGradient: 'radial-gradient(ellipse at 40% 20%, rgba(255,255,255,0.3) 0%, transparent 50%)',
+    atmosphereColor: 'rgba(239, 68, 68, 0.4)',
+    features: ['crater', 'ridge'],
+  },
+  3: {
+    name: 'Venus',
+    baseGradient: 'radial-gradient(circle at 35% 35%, #ffb347 0%, #f97316 40%, #c2410c 100%)',
+    overlayGradient: 'radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.4) 0%, transparent 40%)',
+    atmosphereColor: 'rgba(249, 115, 22, 0.5)',
+    features: ['clouds', 'swirl'],
+  },
+  4: {
+    name: 'Tierra',
+    baseGradient: 'radial-gradient(circle at 40% 40%, #fde047 0%, #eab308 50%, #a16207 100%)',
+    overlayGradient: 'radial-gradient(ellipse at 25% 30%, rgba(255,255,255,0.35) 0%, transparent 45%)',
+    atmosphereColor: 'rgba(234, 179, 8, 0.4)',
+    features: ['continent', 'ocean'],
+  },
+  5: {
+    name: 'Marte',
+    baseGradient: 'radial-gradient(circle at 35% 35%, #4ade80 0%, #22c55e 45%, #166534 100%)',
+    overlayGradient: 'radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.3) 0%, transparent 50%)',
+    atmosphereColor: 'rgba(34, 197, 94, 0.4)',
+    features: ['forest', 'valley'],
+  },
+  6: {
+    name: 'Júpiter',
+    baseGradient: 'radial-gradient(circle at 40% 35%, #67e8f9 0%, #06b6d4 50%, #0e7490 100%)',
+    overlayGradient: 'radial-gradient(ellipse at 25% 20%, rgba(255,255,255,0.4) 0%, transparent 40%)',
+    atmosphereColor: 'rgba(6, 182, 212, 0.5)',
+    features: ['rings', 'storm'],
+  },
+  7: {
+    name: 'Saturno',
+    baseGradient: 'radial-gradient(circle at 35% 30%, #93c5fd 0%, #3b82f6 45%, #1e40af 100%)',
+    overlayGradient: 'radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.35) 0%, transparent 45%)',
+    atmosphereColor: 'rgba(59, 130, 246, 0.5)',
+    features: ['bands', 'rings'],
+  },
+  8: {
+    name: 'Urano',
+    baseGradient: 'radial-gradient(circle at 40% 35%, #c4b5fd 0%, #8b5cf6 50%, #6d28d9 100%)',
+    overlayGradient: 'radial-gradient(ellipse at 25% 25%, rgba(255,255,255,0.3) 0%, transparent 50%)',
+    atmosphereColor: 'rgba(139, 92, 246, 0.4)',
+    features: ['mist', 'aurora'],
+  },
+  9: {
+    name: 'Neptuno',
+    baseGradient: 'radial-gradient(circle at 35% 35%, #f9a8d4 0%, #ec4899 45%, #be185d 100%)',
+    overlayGradient: 'radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.35) 0%, transparent 40%)',
+    atmosphereColor: 'rgba(236, 72, 153, 0.4)',
+    features: ['crystal', 'glow'],
+  },
 }
 
-export function Planet({ planet, onClick, showUnlockAnimation }: PlanetProps) {
+const sizeClasses = {
+  small: 'w-14 h-14',
+  medium: 'w-20 h-20',
+  large: 'w-24 h-24',
+}
+
+const textSizes = {
+  small: 'text-lg',
+  medium: 'text-2xl',
+  large: 'text-3xl',
+}
+
+export function Planet({ planet, onClick, showUnlockAnimation, size = 'medium' }: PlanetProps) {
   const isLocked = planet.status === 'locked'
   const isCompleted = planet.status === 'completed'
   const isUnlocked = planet.status === 'unlocked'
 
-  const baseColor = planetColors[planet.table] || '#6b7280'
+  const config = planetConfigs[planet.table] || planetConfigs[2]
 
   // Unlock animation variants
   const unlockVariants = {
@@ -46,67 +114,175 @@ export function Planet({ planet, onClick, showUnlockAnimation }: PlanetProps) {
       onClick={onClick}
       disabled={isLocked}
       className={`
-        relative w-20 h-20 rounded-full flex items-center justify-center
+        relative ${sizeClasses[size]} rounded-full flex items-center justify-center
         transition-all duration-300 cursor-pointer
-        ${isLocked ? 'opacity-50 grayscale cursor-not-allowed' : ''}
-        ${isUnlocked ? 'shadow-lg shadow-space-blue/50' : ''}
-        ${isCompleted ? 'shadow-lg shadow-gold/50' : ''}
+        ${isLocked ? 'grayscale cursor-not-allowed' : ''}
       `}
-      style={{ backgroundColor: baseColor }}
-      whileHover={!isLocked ? { scale: 1.1 } : undefined}
+      whileHover={!isLocked ? { scale: 1.15 } : undefined}
       whileTap={!isLocked ? { scale: 0.95 } : undefined}
       initial={showUnlockAnimation ? unlockVariants.initial : false}
-      animate={
-        showUnlockAnimation
-          ? unlockVariants.animate
-          : isUnlocked
-            ? {
-                boxShadow: [
-                  '0 0 20px rgba(37, 99, 235, 0.5)',
-                  '0 0 40px rgba(37, 99, 235, 0.7)',
-                  '0 0 20px rgba(37, 99, 235, 0.5)',
-                ],
-              }
-            : undefined
-      }
-      transition={
-        !showUnlockAnimation && isUnlocked
-          ? {
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }
-          : undefined
-      }
+      animate={showUnlockAnimation ? unlockVariants.animate : undefined}
     >
-      {/* Planet number */}
-      <span className="text-2xl font-bold text-white drop-shadow-lg">
+      {/* Planet base with gradient */}
+      <div
+        className="absolute inset-0 rounded-full overflow-hidden"
+        style={{ background: config.baseGradient }}
+      />
+
+      {/* Planet texture overlay - veins/patterns */}
+      <div
+        className="absolute inset-0 rounded-full opacity-60"
+        style={{
+          background: `
+            repeating-linear-gradient(
+              ${45 + planet.table * 15}deg,
+              transparent 0px,
+              transparent 3px,
+              rgba(255,255,255,0.1) 3px,
+              rgba(255,255,255,0.1) 4px
+            ),
+            repeating-linear-gradient(
+              ${-30 + planet.table * 10}deg,
+              transparent 0px,
+              transparent 5px,
+              rgba(0,0,0,0.15) 5px,
+              rgba(0,0,0,0.15) 6px
+            )
+          `,
+        }}
+      />
+
+      {/* Spots/features */}
+      <div className="absolute inset-0 rounded-full overflow-hidden">
+        {/* Feature spot 1 */}
+        <div
+          className="absolute rounded-full opacity-40"
+          style={{
+            width: '30%',
+            height: '25%',
+            top: '20%',
+            left: '15%',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%)',
+          }}
+        />
+        {/* Feature spot 2 */}
+        <div
+          className="absolute rounded-full opacity-30"
+          style={{
+            width: '25%',
+            height: '20%',
+            top: '55%',
+            left: '50%',
+            background: 'radial-gradient(circle, rgba(0,0,0,0.3) 0%, transparent 70%)',
+          }}
+        />
+        {/* Feature spot 3 - crater/lake */}
+        <div
+          className="absolute rounded-full opacity-25"
+          style={{
+            width: '20%',
+            height: '15%',
+            top: '35%',
+            left: '60%',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.5) 0%, rgba(0,0,0,0.2) 50%, transparent 70%)',
+          }}
+        />
+      </div>
+
+      {/* Highlight/shine overlay */}
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{ background: config.overlayGradient }}
+      />
+
+      {/* Atmosphere glow for unlocked/completed */}
+      {!isLocked && (
+        <motion.div
+          className="absolute -inset-1 rounded-full pointer-events-none"
+          style={{
+            background: `radial-gradient(circle, ${config.atmosphereColor} 0%, transparent 70%)`,
+          }}
+          animate={
+            isUnlocked
+              ? {
+                  scale: [1, 1.15, 1],
+                  opacity: [0.6, 0.9, 0.6],
+                }
+              : isCompleted
+                ? {
+                    scale: [1, 1.1, 1],
+                    opacity: [0.4, 0.7, 0.4],
+                  }
+                : undefined
+          }
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        />
+      )}
+
+      {/* Gold ring for completed planets */}
+      {isCompleted && (
+        <motion.div
+          className="absolute -inset-1 rounded-full border-2 border-gold/60 pointer-events-none"
+          animate={{
+            boxShadow: [
+              '0 0 10px rgba(255, 215, 0, 0.3)',
+              '0 0 20px rgba(255, 215, 0, 0.5)',
+              '0 0 10px rgba(255, 215, 0, 0.3)',
+            ],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        />
+      )}
+
+      {/* Planet number - styled */}
+      <span
+        className={`
+          relative z-10 ${textSizes[size]} font-bold text-white
+          drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]
+          ${isLocked ? 'opacity-40' : ''}
+        `}
+        style={{
+          textShadow: '0 0 10px rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.5)',
+        }}
+      >
         {planet.table}
       </span>
 
-      {/* Stars for completed planets */}
+      {/* Stars for completed planets - positioned above the number */}
       {isCompleted && planet.stars > 0 && (
-        <div className="absolute -bottom-1 flex gap-0.5">
+        <div className="absolute top-1 left-1/2 -translate-x-1/2 flex gap-0.5 z-30">
           {Array.from({ length: planet.stars }).map((_, i) => (
             <motion.span
               key={i}
-              className="text-gold text-sm"
+              className="text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.8)]"
+              style={{ fontSize: size === 'small' ? '8px' : size === 'medium' ? '10px' : '12px' }}
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ delay: i * 0.1, type: 'spring' }}
             >
-              ⭐
+              ★
             </motion.span>
           ))}
         </div>
       )}
 
-      {/* Lock icon for locked planets */}
+      {/* Lock overlay for locked planets */}
       {isLocked && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full">
-          <span className="text-white/70 text-lg">🔒</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full z-10">
+          <span className="text-white/60 text-lg drop-shadow-lg">🔒</span>
         </div>
       )}
     </motion.button>
   )
 }
+
+// Export planet names for use in other components
+export { planetConfigs }

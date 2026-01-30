@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useSessionStore } from '@/store/sessionStore'
+import { useSoundContext } from '@/contexts/SoundContext'
 import { NumericKeyboard } from '@/components/game/NumericKeyboard'
 import { QuestionCard } from '@/components/game/QuestionCard'
 import { ProgressIndicator } from '@/components/game/ProgressIndicator'
@@ -28,6 +29,7 @@ export function GameSession({ onSessionEnd, onExit }: GameSessionProps) {
 
   const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null)
   const [showRocket, setShowRocket] = useState(false)
+  const { playSound } = useSoundContext()
 
   const currentQuestion = getCurrentQuestion()
 
@@ -50,6 +52,7 @@ export function GameSession({ onSessionEnd, onExit }: GameSessionProps) {
     const isCorrect = submitAnswer(answer)
 
     setFeedback(isCorrect ? 'correct' : 'incorrect')
+    playSound(isCorrect ? 'correct' : 'incorrect')
 
     if (isCorrect) {
       // Show flying rocket animation
@@ -84,6 +87,7 @@ export function GameSession({ onSessionEnd, onExit }: GameSessionProps) {
     onSessionEnd,
     clearCurrentAnswer,
     feedback,
+    playSound,
   ])
 
   const handleExit = useCallback(() => {

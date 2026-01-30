@@ -1,9 +1,14 @@
-import { useState, useCallback, lazy, Suspense } from 'react'
+import { useState, useCallback, lazy, Suspense, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SolarMap } from '@/features/solar-map/SolarMap'
 import { GameSession } from '@/features/gameplay/GameSession'
 import { StarCounter } from '@/components/layout/StarCounter'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Toast } from '@/components/ui/Toast'
+import { Starfield } from '@/components/ui/Starfield'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { StatisticsPanel } from '@/components/ui/StatisticsPanel'
+import { StartScreen } from '@/features/start/StartScreen'
 
 // Lazy load non-critical components
 const CelebrationScreen = lazy(() =>
@@ -13,11 +18,26 @@ const CelebrationScreen = lazy(() =>
 )
 import { useSessionStore } from '@/store/sessionStore'
 import { useGameStore } from '@/store/gameStore'
+import { useUserStore } from '@/store/userStore'
+import { useRecordsStore } from '@/store/recordsStore'
 import { calculateStars } from '@/utils/starCalculator'
 import { APP_NAME } from '@/constants/config'
 import type { StarLevel, SessionResult } from '@/types/game.types'
 
-type Screen = 'map' | 'game' | 'celebration'
+type Screen = 'start' | 'map' | 'game' | 'celebration'
+
+const avatarEmojis: Record<string, string> = {
+  astronaut: '👨‍🚀',
+  alien: '👽',
+  robot: '🤖',
+  rocket: '🚀',
+  star: '⭐',
+  planet: '🪐',
+}
+
+function getAvatarEmoji(avatar: string): string {
+  return avatarEmojis[avatar] || '👤'
+}
 
 const initialSessionResult: SessionResult = {
   accuracy: 0,
@@ -28,23 +48,50 @@ const initialSessionResult: SessionResult = {
 }
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('map')
+  const currentUserId = useUserStore((state) => state.currentUserId)
+  const currentUser = useUserStore((state) => state.getCurrentUser())
+  const logout = useUserStore((state) => state.logout)
+  const setCurrentUser = useGameStore((state) => state.setCurrentUser)
+
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() =>
+    currentUserId ? 'map' : 'start'
+  )
   const [lastSessionResult, setLastSessionResult] = useState<SessionResult>(initialSessionResult)
   const [lastStars, setLastStars] = useState<StarLevel>(0)
   const [isFirstCompletion, setIsFirstCompletion] = useState<boolean>(false)
   const [activePlanetId, setActivePlanetId] = useState<number | null>(null)
   const [newlyUnlockedPlanetId, setNewlyUnlockedPlanetId] = useState<number | null>(null)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const startSession = useSessionStore((state) => state.startSession)
   const planets = useGameStore((state) => state.planets)
   const updatePlanetStars = useGameStore((state) => state.updatePlanetStars)
+  const resetProgress = useGameStore((state) => state.resetProgress)
+  const addRecord = useRecordsStore((state) => state.addRecord)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+
+  // Sync game progress when user changes
+  useEffect(() => {
+    setCurrentUser(currentUserId)
+  }, [currentUserId, setCurrentUser])
+
+  const handleStartGame = useCallback(() => {
+    setCurrentScreen('map')
+  }, [])
+
+  const handleLogout = useCallback(() => {
+    logout()
+    setCurrentScreen('start')
+  }, [logout])
 
   const handlePlanetClick = useCallback((planetId: number) => {
     const planet = planets.find((p) => p.id === planetId)
     if (!planet) return
 
     if (planet.status === 'locked') {
-      alert('¡Completa el planeta anterior primero!')
+      setToastMessage('🔒 ¡Completa el planeta anterior primero!')
+      setTimeout(() => setToastMessage(null), 2500)
       return
     }
 
@@ -70,31 +117,98 @@ function App() {
       if (stars > 0 && isFirstCompletion) {
         setNewlyUnlockedPlanetId(activePlanetId + 1)
       }
+
+      // Add record if user is logged in
+      const planet = planets.find((p) => p.id === activePlanetId)
+      if (currentUserId && currentUser && planet) {
+        addRecord(
+          currentUserId,
+          currentUser.name,
+          planet.table,
+          result.totalTimeMs,
+          result.wrongCount
+        )
+      }
     }
 
     // Show celebration screen
     setCurrentScreen('celebration')
-  }, [activePlanetId, updatePlanetStars, isFirstCompletion])
+  }, [activePlanetId, updatePlanetStars, isFirstCompletion, planets, currentUserId, currentUser, addRecord])
 
   const handleCelebrationContinue = useCallback(() => {
     setActivePlanetId(null)
     setCurrentScreen('map')
-    // Clear the animation flag after a delay to let the animation play
+    // Clear the animation flag after a delay to let the animation play (match spaceship flight duration)
     setTimeout(() => {
       setNewlyUnlockedPlanetId(null)
-    }, 2000)
+    }, 4000)
   }, [])
+
+  const handleRetry = useCallback(() => {
+    if (activePlanetId === null) return
+    const planet = planets.find((p) => p.id === activePlanetId)
+    if (!planet) return
+
+    // Track if this would be first completion (check current status)
+    setIsFirstCompletion(planet.status !== 'completed')
+    // Restart session for the same planet
+    startSession(activePlanetId, planet.table)
+    setCurrentScreen('game')
+  }, [activePlanetId, planets, startSession])
 
   const handleExit = useCallback(() => {
     setCurrentScreen('map')
   }, [])
 
+  const handleResetConfirm = useCallback(() => {
+    resetProgress()
+    setShowResetConfirm(false)
+    setToastMessage('Progreso reiniciado')
+    setTimeout(() => setToastMessage(null), 2500)
+  }, [resetProgress])
+
   return (
-    <AnimatePresence mode="wait">
-      {currentScreen === 'map' && (
+    <>
+      {/* Animated starfield background */}
+      <Starfield />
+
+      {/* Toast notification */}
+      <Toast message={toastMessage || ''} isVisible={!!toastMessage} />
+
+      {/* Reset confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        title="Reiniciar Progreso"
+        message="¿Estás seguro de que quieres reiniciar todo tu progreso? Perderás todas las estrellas conseguidas."
+        confirmText="Reiniciar"
+        cancelText="Cancelar"
+        onConfirm={handleResetConfirm}
+        onCancel={() => setShowResetConfirm(false)}
+      />
+
+      {/* Statistics panel */}
+      <StatisticsPanel
+        isOpen={showStats}
+        onClose={() => setShowStats(false)}
+      />
+
+      <AnimatePresence mode="wait">
+        {currentScreen === 'start' && (
+          <motion.div
+            key="start"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <StartScreen onStart={handleStartGame} />
+          </motion.div>
+        )}
+
+        {currentScreen === 'map' && (
         <motion.div
           key="map"
-          className="min-h-screen bg-space-dark text-white font-sans flex flex-col"
+          className="h-screen bg-space-dark text-white font-sans flex flex-col overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -102,13 +216,70 @@ function App() {
         >
           {/* Header */}
           <motion.header
-            className="p-4 text-center"
+            className="p-4 flex items-center justify-between"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <h1 className="text-2xl font-bold text-gold">{APP_NAME}</h1>
-            <p className="text-white/60 text-sm">Explora el Sistema Solar</p>
+            {/* User info & logout */}
+            <motion.button
+              onClick={handleLogout}
+              className="flex items-center gap-2 bg-space-navy/50 rounded-full px-3 py-2 text-white/80 hover:text-white hover:bg-space-navy transition-colors"
+              whileTap={{ scale: 0.95 }}
+              title="Cambiar jugador"
+            >
+              <span className="text-lg">{currentUser ? getAvatarEmoji(currentUser.avatar) : '👤'}</span>
+              <span className="text-sm font-medium max-w-20 truncate">{currentUser?.name || 'Jugador'}</span>
+            </motion.button>
+            <div className="text-center">
+              <h1 className="text-xl font-bold text-gold">{APP_NAME}</h1>
+            </div>
+            <div className="flex gap-2">
+              {/* Stats button */}
+              <motion.button
+                onClick={() => setShowStats(true)}
+                className="w-10 h-10 bg-space-navy/50 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-space-navy transition-colors"
+                whileTap={{ scale: 0.9 }}
+                title="Ver estadísticas"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </motion.button>
+              {/* Reset button */}
+              <motion.button
+                onClick={() => setShowResetConfirm(true)}
+                className="w-10 h-10 bg-space-navy/50 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-space-navy transition-colors"
+                whileTap={{ scale: 0.9 }}
+                title="Reiniciar progreso"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </motion.button>
+            </div>
           </motion.header>
 
           {/* Star Counter */}
@@ -151,11 +322,13 @@ function App() {
               sessionResult={lastSessionResult}
               isFirstCompletion={isFirstCompletion}
               onContinue={handleCelebrationContinue}
+              onRetry={handleRetry}
             />
           </Suspense>
         </motion.div>
       )}
-    </AnimatePresence>
+      </AnimatePresence>
+    </>
   )
 }
 
