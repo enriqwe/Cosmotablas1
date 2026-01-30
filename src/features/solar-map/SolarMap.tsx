@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useGameStore } from '@/store/gameStore'
 import { Planet } from './Planet'
 import { Sun } from './Sun'
