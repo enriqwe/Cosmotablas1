@@ -242,28 +242,6 @@ function App() {
               <h1 className="text-xl font-bold text-gold">{APP_NAME}</h1>
             </div>
             <div className="flex gap-2">
-              {/* Stats button */}
-              <motion.button
-                onClick={() => setShowStats(true)}
-                className="w-10 h-10 bg-space-navy/50 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-space-navy transition-colors"
-                whileTap={{ scale: 0.9 }}
-                title="Ver estadísticas"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-              </motion.button>
               {/* Reset button */}
               <motion.button
                 onClick={() => setShowResetConfirm(true)}
@@ -295,6 +273,7 @@ function App() {
           {/* Main Content - Solar Map */}
           <SolarMap
             onPlanetClick={handlePlanetClick}
+            onSunClick={() => setShowStats(true)}
             newlyUnlockedPlanetId={newlyUnlockedPlanetId}
           />
         </motion.div>

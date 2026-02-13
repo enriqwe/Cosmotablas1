@@ -3,21 +3,24 @@ import { motion } from 'framer-motion'
 interface SunProps {
   totalStars: number
   maxStars: number
+  onClick?: () => void
 }
 
-export function Sun({ totalStars, maxStars }: SunProps) {
+export function Sun({ totalStars, maxStars, onClick }: SunProps) {
   const fillPercent = Math.min((totalStars / maxStars) * 100, 100)
 
   return (
     <motion.div
-      className="relative w-20 h-20 flex items-center justify-center"
+      className="relative w-32 h-32 flex items-center justify-center cursor-pointer"
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+      onClick={onClick}
+      whileTap={{ scale: 0.95 }}
     >
       {/* Outer glow layers */}
       <motion.div
-        className="absolute w-32 h-32 rounded-full pointer-events-none"
+        className="absolute w-48 h-48 rounded-full pointer-events-none"
         style={{
           background: 'radial-gradient(circle, rgba(255, 200, 50, 0.2) 0%, transparent 70%)',
         }}
@@ -32,7 +35,7 @@ export function Sun({ totalStars, maxStars }: SunProps) {
         }}
       />
       <motion.div
-        className="absolute w-28 h-28 rounded-full pointer-events-none"
+        className="absolute w-44 h-44 rounded-full pointer-events-none"
         style={{
           background: 'radial-gradient(circle, rgba(255, 180, 50, 0.3) 0%, transparent 60%)',
         }}
@@ -49,10 +52,10 @@ export function Sun({ totalStars, maxStars }: SunProps) {
 
       {/* Sun body */}
       <div
-        className="relative w-16 h-16 rounded-full overflow-hidden"
+        className="relative w-28 h-28 rounded-full overflow-hidden"
         style={{
           background: 'radial-gradient(circle at 35% 35%, #fff9c4 0%, #ffd54f 30%, #ff9800 60%, #e65100 100%)',
-          boxShadow: '0 0 30px rgba(255, 152, 0, 0.8), 0 0 60px rgba(255, 152, 0, 0.4), inset 0 0 20px rgba(255, 235, 59, 0.5)',
+          boxShadow: '0 0 40px rgba(255, 152, 0, 0.8), 0 0 80px rgba(255, 152, 0, 0.4), inset 0 0 30px rgba(255, 235, 59, 0.5)',
         }}
       >
         {/* Sun surface texture */}
@@ -76,12 +79,12 @@ export function Sun({ totalStars, maxStars }: SunProps) {
           {[0, 60, 120, 180, 240, 300].map((angle) => (
             <motion.div
               key={angle}
-              className="absolute w-1 h-4 bg-gradient-to-t from-transparent via-yellow-300 to-transparent"
+              className="absolute w-1.5 h-5 bg-gradient-to-t from-transparent via-yellow-300 to-transparent"
               style={{
                 left: '50%',
-                top: '-8px',
+                top: '-10px',
                 transform: `translateX(-50%) rotate(${angle}deg)`,
-                transformOrigin: '50% calc(100% + 32px)',
+                transformOrigin: '50% calc(100% + 56px)',
                 opacity: 0.6,
               }}
               animate={{
@@ -99,10 +102,10 @@ export function Sun({ totalStars, maxStars }: SunProps) {
         </motion.div>
       </div>
 
-      {/* Star counter in center */}
+      {/* Star counter and stats label in center */}
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <motion.span
-          className="text-xl font-bold text-white drop-shadow-lg"
+          className="text-2xl font-bold text-white drop-shadow-lg"
           style={{
             textShadow: '0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(255,200,0,0.5)',
           }}
@@ -114,18 +117,26 @@ export function Sun({ totalStars, maxStars }: SunProps) {
           {totalStars}
         </motion.span>
         <span
-          className="text-xs text-white/80"
+          className="text-sm text-white/80"
           style={{
             textShadow: '0 0 5px rgba(0,0,0,0.8)',
           }}
         >
           ⭐
         </span>
+        <span
+          className="text-[9px] text-white/60 mt-0.5 tracking-wide"
+          style={{
+            textShadow: '0 0 5px rgba(0,0,0,0.8)',
+          }}
+        >
+          RÉCORDS
+        </span>
       </div>
 
       {/* Progress ring around sun */}
       <svg
-        className="absolute w-20 h-20 -rotate-90 pointer-events-none"
+        className="absolute w-32 h-32 -rotate-90 pointer-events-none"
         viewBox="0 0 100 100"
       >
         {/* Background ring */}

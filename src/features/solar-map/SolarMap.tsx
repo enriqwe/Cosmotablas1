@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 
 interface SolarMapProps {
   onPlanetClick: (planetId: number) => void
+  onSunClick?: () => void
   newlyUnlockedPlanetId?: number | null
 }
 
@@ -38,7 +39,7 @@ function getPlanetPosition(index: number) {
   return { x, y, orbitRadius: config.orbitRadius }
 }
 
-export function SolarMap({ onPlanetClick, newlyUnlockedPlanetId }: SolarMapProps) {
+export function SolarMap({ onPlanetClick, onSunClick, newlyUnlockedPlanetId }: SolarMapProps) {
   const planets = useGameStore((state) => state.planets)
   const totalStars = useGameStore((state) => state.totalStars)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -203,11 +204,11 @@ export function SolarMap({ onPlanetClick, newlyUnlockedPlanetId }: SolarMapProps
         <div
           className="absolute z-10"
           style={{
-            left: CENTER - 40, // Half of sun size
-            top: CENTER - 40,
+            left: CENTER - 64, // Half of sun container (128px)
+            top: CENTER - 64,
           }}
         >
-          <Sun totalStars={totalStars} maxStars={24} />
+          <Sun totalStars={totalStars} maxStars={24} onClick={onSunClick} />
         </div>
 
         {/* Planets */}
