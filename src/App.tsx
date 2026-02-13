@@ -19,7 +19,7 @@ const CelebrationScreen = lazy(() =>
 import { useSessionStore } from '@/store/sessionStore'
 import { useGameStore } from '@/store/gameStore'
 import { useUserStore } from '@/store/userStore'
-import { useRecordsStore } from '@/store/recordsStore'
+import { useRecordsStore, type RecordResult } from '@/store/recordsStore'
 import { calculateStars } from '@/utils/starCalculator'
 import { APP_NAME } from '@/constants/config'
 import type { StarLevel, SessionResult } from '@/types/game.types'
@@ -62,6 +62,8 @@ function App() {
   const [activePlanetId, setActivePlanetId] = useState<number | null>(null)
   const [newlyUnlockedPlanetId, setNewlyUnlockedPlanetId] = useState<number | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [lastRecordResult, setLastRecordResult] = useState<RecordResult | null>(null)
+  const [lastTableNumber, setLastTableNumber] = useState<number>(0)
 
   const startSession = useSessionStore((state) => state.startSession)
   const planets = useGameStore((state) => state.planets)
@@ -121,13 +123,18 @@ function App() {
       // Add record if user is logged in
       const planet = planets.find((p) => p.id === activePlanetId)
       if (currentUserId && currentUser && planet) {
-        addRecord(
+        const recordResult = addRecord(
           currentUserId,
           currentUser.name,
           planet.table,
           result.totalTimeMs,
           result.wrongCount
         )
+        setLastRecordResult(recordResult)
+        setLastTableNumber(planet.table)
+      } else {
+        setLastRecordResult(null)
+        setLastTableNumber(0)
       }
     }
 
@@ -321,6 +328,8 @@ function App() {
               stars={lastStars}
               sessionResult={lastSessionResult}
               isFirstCompletion={isFirstCompletion}
+              recordResult={lastRecordResult}
+              tableNumber={lastTableNumber}
               onContinue={handleCelebrationContinue}
               onRetry={handleRetry}
             />

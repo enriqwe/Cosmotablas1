@@ -14,11 +14,13 @@ interface Particle {
 interface ParticleSystemProps {
   isActive: boolean
   duration?: number
+  intensity?: 'normal' | 'record'
 }
 
 const COLORS = ['#fbbf24', '#f59e0b', '#ef4444', '#22c55e', '#3b82f6', '#8b5cf6']
+const RECORD_COLORS = ['#fbbf24', '#f59e0b', '#fde68a', '#fcd34d', '#fffbeb', '#fbbf24', '#ef4444', '#8b5cf6']
 
-export function ParticleSystem({ isActive, duration = 3000 }: ParticleSystemProps) {
+export function ParticleSystem({ isActive, duration = 3000, intensity = 'normal' }: ParticleSystemProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const particlesRef = useRef<Particle[]>([])
   const animationRef = useRef<number>(0)
@@ -36,20 +38,29 @@ export function ParticleSystem({ isActive, duration = 3000 }: ParticleSystemProp
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
 
-    // Create particles
-    const particleCount = 60
+    const isRecord = intensity === 'record'
+    const particleCount = isRecord ? 200 : 60
+    const colors = isRecord ? RECORD_COLORS : COLORS
     particlesRef.current = []
 
     for (let i = 0; i < particleCount; i++) {
+      // For record mode, spawn from multiple points across the screen
+      const spawnX = isRecord
+        ? canvas.width * (0.1 + Math.random() * 0.8)
+        : canvas.width / 2
+      const spawnY = isRecord
+        ? canvas.height * (0.2 + Math.random() * 0.4)
+        : canvas.height / 2
+
       particlesRef.current.push({
-        x: canvas.width / 2,
-        y: canvas.height / 2,
-        vx: (Math.random() - 0.5) * 10,
-        vy: (Math.random() - 0.5) * 10 - 3,
-        size: Math.random() * 8 + 4,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        x: spawnX,
+        y: spawnY,
+        vx: (Math.random() - 0.5) * (isRecord ? 16 : 10),
+        vy: (Math.random() - 0.5) * (isRecord ? 16 : 10) - (isRecord ? 5 : 3),
+        size: Math.random() * (isRecord ? 12 : 8) + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
         life: 0,
-        maxLife: Math.random() * 60 + 60,
+        maxLife: Math.random() * (isRecord ? 90 : 60) + 60,
       })
     }
 

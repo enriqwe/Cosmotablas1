@@ -12,11 +12,23 @@ export interface TableRecord {
   date: number
 }
 
+export interface RecordResult {
+  position: number // 1-indexed position in leaderboard
+  totalRecords: number
+  isNewPersonalBest: boolean
+  isAbsoluteRecord: boolean
+  points: number
+}
+
 interface RecordsStore {
   // All records indexed by table number
   records: Record<number, TableRecord[]>
   // Add a new record
-  addRecord: (userId: string, userName: string, tableNumber: number, timeMs: number, errors: number) => void
+  addRecord: (userId: string, userName: string, tableNumber: number, timeMs: number, errors: number) => RecordResult
+  // Get user's position in points leaderboard (1-indexed, 0 if not found)
+  getUserPosition: (tableNumber: number, userId: string) => number
+  // Get all records sorted by points
+  getAllRecordsByPoints: (tableNumber: number) => TableRecord[]
   // Get top records for a table
   getTopRecordsByTime: (tableNumber: number, limit?: number) => TableRecord[]
   getTopRecordsByErrors: (tableNumber: number, limit?: number) => TableRecord[]
@@ -25,7 +37,7 @@ interface RecordsStore {
   getTablesWithRecords: () => number[]
 }
 
-function calculatePoints(timeMs: number, errors: number): number {
+export function calculatePoints(timeMs: number, errors: number): number {
   return Math.round(timeMs / 1000) + errors * 5
 }
 
@@ -34,7 +46,7 @@ export const useRecordsStore = create<RecordsStore>()(
     (set, get) => ({
       records: {},
 
-      addRecord: (userId: string, userName: string, tableNumber: number, timeMs: number, errors: number) => {
+      addRecord: (userId: string, userName: string, tableNumber: number, timeMs: number, errors: number): RecordResult => {
         const points = calculatePoints(timeMs, errors)
         const newRecord: TableRecord = {
           userId: userId,
@@ -46,29 +58,28 @@ export const useRecordsStore = create<RecordsStore>()(
           date: Date.now(),
         }
 
-        set((state) => {
-          const tableRecords = state.records[tableNumber] || []
+        const tableRecords = get().records[tableNumber] || []
+        const existingIndex = tableRecords.findIndex((r) => r.userId === userId)
+        const existing = existingIndex !== -1 ? tableRecords[existingIndex] : null
+        const isNewPersonalBest = !existing || points < existing.points
 
-          // Check if this user already has a record for this table
-          const existingIndex = tableRecords.findIndex((r) => r.userId === userId)
+        set((state) => {
+          const stateRecords = state.records[tableNumber] || []
+          const idx = stateRecords.findIndex((r) => r.userId === userId)
 
           let updatedRecords: TableRecord[]
-          if (existingIndex !== -1) {
-            // User has an existing record - only update if new one is better (lower points)
-            const existing = tableRecords[existingIndex]
-            if (points < existing.points) {
+          if (idx !== -1) {
+            if (isNewPersonalBest) {
               updatedRecords = [
-                ...tableRecords.slice(0, existingIndex),
+                ...stateRecords.slice(0, idx),
                 newRecord,
-                ...tableRecords.slice(existingIndex + 1),
+                ...stateRecords.slice(idx + 1),
               ]
             } else {
-              // Keep existing record
-              updatedRecords = tableRecords
+              updatedRecords = stateRecords
             }
           } else {
-            // New record for this user
-            updatedRecords = [...tableRecords, newRecord]
+            updatedRecords = [...stateRecords, newRecord]
           }
 
           return {
@@ -78,6 +89,30 @@ export const useRecordsStore = create<RecordsStore>()(
             },
           }
         })
+
+        // Compute position after update
+        const position = get().getUserPosition(tableNumber, userId)
+        const totalRecords = (get().records[tableNumber] || []).length
+
+        return {
+          position,
+          totalRecords,
+          isNewPersonalBest,
+          isAbsoluteRecord: position === 1,
+          points,
+        }
+      },
+
+      getUserPosition: (tableNumber: number, userId: string) => {
+        const tableRecords = get().records[tableNumber] || []
+        const sorted = [...tableRecords].sort((a, b) => a.points - b.points)
+        const index = sorted.findIndex((r) => r.userId === userId)
+        return index + 1 // 1-indexed, 0 if not found
+      },
+
+      getAllRecordsByPoints: (tableNumber: number) => {
+        const tableRecords = get().records[tableNumber] || []
+        return [...tableRecords].sort((a, b) => a.points - b.points)
       },
 
       getTopRecordsByTime: (tableNumber: number, limit = 3) => {
