@@ -27,13 +27,13 @@ export function NumericKeyboard({ onNumberPress, onDelete, onSubmit }: NumericKe
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2.5 w-full max-w-[280px] mx-auto px-2">
+    <div className="grid grid-cols-3 gap-3 mx-auto px-2" style={{ width: 'fit-content' }}>
       {/* Numbers 1-9 */}
       {numbers.map((num) => (
         <motion.button
           key={num}
           onClick={() => handleNumberPress(num)}
-          className="aspect-square rounded-full bg-gradient-to-b from-space-navy to-space-navy/80 text-white text-2xl font-bold
+          className="w-16 h-16 rounded-full bg-gradient-to-b from-space-navy to-space-navy/80 text-white text-3xl font-bold
                      border border-white/10 shadow-lg shadow-black/30
                      active:scale-95 transition-all"
           whileTap={{ scale: 0.88 }}
@@ -45,7 +45,7 @@ export function NumericKeyboard({ onNumberPress, onDelete, onSubmit }: NumericKe
       {/* Delete button */}
       <motion.button
         onClick={handleDelete}
-        className="aspect-square rounded-full bg-gradient-to-b from-red-900/60 to-red-950/60 text-white text-2xl
+        className="w-16 h-16 rounded-full bg-gradient-to-b from-red-900/60 to-red-950/60 text-white text-3xl
                    border border-red-500/20 shadow-lg shadow-black/30
                    active:scale-95 transition-all"
         whileTap={{ scale: 0.88 }}
@@ -56,7 +56,7 @@ export function NumericKeyboard({ onNumberPress, onDelete, onSubmit }: NumericKe
       {/* Zero */}
       <motion.button
         onClick={() => handleNumberPress(0)}
-        className="aspect-square rounded-full bg-gradient-to-b from-space-navy to-space-navy/80 text-white text-2xl font-bold
+        className="w-16 h-16 rounded-full bg-gradient-to-b from-space-navy to-space-navy/80 text-white text-3xl font-bold
                    border border-white/10 shadow-lg shadow-black/30
                    active:scale-95 transition-all"
         whileTap={{ scale: 0.88 }}
@@ -67,7 +67,7 @@ export function NumericKeyboard({ onNumberPress, onDelete, onSubmit }: NumericKe
       {/* Submit button */}
       <motion.button
         onClick={handleSubmit}
-        className="aspect-square rounded-full bg-gradient-to-b from-emerald-600 to-emerald-700 text-white text-2xl
+        className="w-16 h-16 rounded-full bg-gradient-to-b from-emerald-600 to-emerald-700 text-white text-3xl
                    border border-emerald-400/30 shadow-lg shadow-emerald-900/30
                    active:scale-95 transition-all"
         whileTap={{ scale: 0.88 }}

@@ -256,21 +256,41 @@ export function Planet({ planet, onClick, showUnlockAnimation, size = 'medium' }
         {planet.table}
       </span>
 
-      {/* Stars for completed planets - positioned above the number */}
+      {/* Stars for completed planets - below the planet in 2 rows (3+2) */}
       {isCompleted && planet.stars > 0 && (
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 flex gap-px z-30">
-          {Array.from({ length: planet.stars }).map((_, i) => (
-            <motion.span
-              key={i}
-              className="text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.8)]"
-              style={{ fontSize: size === 'small' ? '6px' : size === 'medium' ? '7px' : '9px' }}
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: i * 0.08, type: 'spring' }}
-            >
-              ★
-            </motion.span>
-          ))}
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-px" style={{ bottom: size === 'small' ? '-2px' : size === 'medium' ? '-4px' : '-5px' }}>
+          {/* Top row: up to 3 stars */}
+          <div className="flex gap-px">
+            {Array.from({ length: Math.min(planet.stars, 3) }).map((_, i) => (
+              <motion.span
+                key={i}
+                className="text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.8)]"
+                style={{ fontSize: size === 'small' ? '7px' : size === 'medium' ? '9px' : '11px' }}
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ delay: i * 0.08, type: 'spring' }}
+              >
+                ★
+              </motion.span>
+            ))}
+          </div>
+          {/* Bottom row: stars 4 and 5 */}
+          {planet.stars > 3 && (
+            <div className="flex gap-px">
+              {Array.from({ length: planet.stars - 3 }).map((_, i) => (
+                <motion.span
+                  key={i + 3}
+                  className="text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.8)]"
+                  style={{ fontSize: size === 'small' ? '7px' : size === 'medium' ? '9px' : '11px' }}
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: (i + 3) * 0.08, type: 'spring' }}
+                >
+                  ★
+                </motion.span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
