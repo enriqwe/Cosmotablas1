@@ -197,10 +197,10 @@ export function StartScreen({ onStart }: StartScreenProps) {
                   key={user.id}
                   className={`
                     relative bg-space-navy/60 rounded-xl p-3 flex items-center gap-3
-                    cursor-pointer border-2 transition-all
+                    cursor-pointer transition-all
                     ${exactMatch?.id === user.id
-                      ? 'border-gold bg-space-navy/80'
-                      : 'border-transparent hover:border-space-blue/50'}
+                      ? 'ring-2 ring-gold bg-space-navy/80'
+                      : 'hover:bg-space-navy/80'}
                   `}
                   onClick={() => handleSelectUser(user)}
                   whileTap={{ scale: 0.98 }}
