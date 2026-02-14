@@ -8,6 +8,7 @@ import { Toast } from '@/components/ui/Toast'
 import { Starfield } from '@/components/ui/Starfield'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { StatisticsPanel } from '@/components/ui/StatisticsPanel'
+import { GalaxyCelebration } from '@/components/ui/GalaxyCelebration'
 import { StartScreen } from '@/features/start/StartScreen'
 import { submitGlobalRecord } from '@/services/leaderboardApi'
 import { calculatePoints } from '@/store/recordsStore'
@@ -74,6 +75,7 @@ function App() {
   const addRecord = useRecordsStore((state) => state.addRecord)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [showGalaxyCelebration, setShowGalaxyCelebration] = useState(false)
 
   // Sync game progress when user changes
   useEffect(() => {
@@ -167,7 +169,15 @@ function App() {
     setTimeout(() => {
       setNewlyUnlockedPlanetId(null)
     }, 4000)
-  }, [])
+
+    // Galaxy celebration when all planets are completed for the first time
+    if (isFirstCompletion) {
+      const allPlanets = useGameStore.getState().planets
+      if (allPlanets.every(p => p.status === 'completed')) {
+        setTimeout(() => setShowGalaxyCelebration(true), 800)
+      }
+    }
+  }, [isFirstCompletion])
 
   const handleRetry = useCallback(() => {
     if (activePlanetId === null) return
@@ -216,6 +226,13 @@ function App() {
         isOpen={showStats}
         onClose={() => setShowStats(false)}
       />
+
+      {/* Galaxy completion celebration */}
+      <AnimatePresence>
+        {showGalaxyCelebration && (
+          <GalaxyCelebration onDismiss={() => setShowGalaxyCelebration(false)} />
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         {currentScreen === 'start' ? (
