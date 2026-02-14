@@ -92,15 +92,21 @@ export function SolarMap({ onPlanetClick, onSunClick, newlyUnlockedPlanetId }: S
     centerOnPosition(pos.x, pos.y)
   }, [centerOnPosition])
 
-  // Initial centering on mount
+  // Initial centering on mount - retry until container has valid dimensions
   useEffect(() => {
-    const raf = requestAnimationFrame(() => {
+    let cancelled = false
+    const tryCenter = () => {
+      if (cancelled) return
+      const container = containerRef.current
+      if (!container || container.clientHeight === 0) {
+        requestAnimationFrame(tryCenter)
+        return
+      }
       const targetIndex = getTargetPlanetIndex()
-      setTimeout(() => {
-        centerOnPlanet(targetIndex)
-      }, 50)
-    })
-    return () => cancelAnimationFrame(raf)
+      centerOnPlanet(targetIndex)
+    }
+    requestAnimationFrame(tryCenter)
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

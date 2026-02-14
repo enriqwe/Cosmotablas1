@@ -81,8 +81,14 @@ function App() {
   }, [currentUserId, setCurrentUser])
 
   const handleStartGame = useCallback(() => {
+    // Sync game progress immediately before transitioning
+    // (don't rely solely on useEffect which fires after render)
+    const userId = useUserStore.getState().currentUserId
+    if (userId) {
+      setCurrentUser(userId)
+    }
     setCurrentScreen('map')
-  }, [])
+  }, [setCurrentUser])
 
   const handleLogout = useCallback(() => {
     logout()
