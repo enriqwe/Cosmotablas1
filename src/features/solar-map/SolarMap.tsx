@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react'
 import { useGameStore } from '@/store/gameStore'
 import { Planet } from './Planet'
 import { Sun } from './Sun'
@@ -63,50 +63,36 @@ export function SolarMap({ onPlanetClick, onSunClick, newlyUnlockedPlanetId }: S
   const lastTouchCenter = useRef<{ x: number; y: number } | null>(null)
   const isTouching = useRef(false)
 
-  // Find the last unlocked or first incomplete planet to center on
-  const getTargetPlanetIndex = useCallback(() => {
-    const unlockedIndex = planets.findIndex(p => p.status === 'unlocked')
-    if (unlockedIndex !== -1) return unlockedIndex
-    for (let i = planets.length - 1; i >= 0; i--) {
-      if (planets[i].status === 'completed') return i
-    }
-    return 0
-  }, [planets])
-
-  // Center the view on a system coordinate
-  const centerOnPosition = useCallback((sx: number, sy: number, currentZoom?: number) => {
-    const container = containerRef.current
-    if (!container) return
-    const z = currentZoom ?? zoom
-    const cw = container.clientWidth
-    const ch = container.clientHeight
-    setPan({
-      x: cw / 2 - sx * z,
-      y: ch / 2 - sy * z,
-    })
-  }, [zoom])
-
-  // Center on target planet
-  const centerOnPlanet = useCallback((planetIndex: number) => {
-    const pos = getPlanetPosition(planetIndex)
-    centerOnPosition(pos.x, pos.y)
-  }, [centerOnPosition])
-
-  // Initial centering on mount - retry until container has valid dimensions
-  useEffect(() => {
-    let cancelled = false
-    const tryCenter = () => {
-      if (cancelled) return
+  // Initial centering on mount
+  // useLayoutEffect fires synchronously after DOM commit, before paint.
+  // Read planets directly from the store to avoid stale closures.
+  useLayoutEffect(() => {
+    const doCenter = () => {
       const container = containerRef.current
-      if (!container || container.clientHeight === 0) {
-        requestAnimationFrame(tryCenter)
-        return
+      if (!container || container.clientHeight === 0) return false
+      const currentPlanets = useGameStore.getState().planets
+      let targetIndex = 0
+      const unlockedIdx = currentPlanets.findIndex(p => p.status === 'unlocked')
+      if (unlockedIdx !== -1) {
+        targetIndex = unlockedIdx
+      } else {
+        for (let i = currentPlanets.length - 1; i >= 0; i--) {
+          if (currentPlanets[i].status === 'completed') { targetIndex = i; break }
+        }
       }
-      const targetIndex = getTargetPlanetIndex()
-      centerOnPlanet(targetIndex)
+      const pos = getPlanetPosition(targetIndex)
+      setPan({
+        x: container.clientWidth / 2 - pos.x,
+        y: container.clientHeight / 2 - pos.y,
+      })
+      return true
     }
-    requestAnimationFrame(tryCenter)
-    return () => { cancelled = true }
+
+    if (!doCenter()) {
+      // Fallback: retry after AnimatePresence transition settles
+      const timer = setTimeout(doCenter, 400)
+      return () => clearTimeout(timer)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
