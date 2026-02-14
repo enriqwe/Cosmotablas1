@@ -52,9 +52,10 @@ function getMedal(position: number): string {
 
 export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('records')
+  const [expandedTable, setExpandedTable] = useState<number | null>(null)
   const planets = useGameStore((state) => state.planets)
   const totalStars = useGameStore((state) => state.totalStars)
-  const { getTopRecordsByPoints, getTablesWithRecords } = useRecordsStore()
+  const { getTopRecordsByPoints, getAllTopRecordsByPoints, getTablesWithRecords } = useRecordsStore()
 
   const maxStars = planets.length * 5
   const completedPlanets = planets.filter((p) => p.status === 'completed').length
@@ -91,18 +92,31 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
     return (
       <div className="space-y-4">
         {[2, 3, 4, 5, 6, 7, 8, 9].map((table) => {
-          const records = getTopRecordsByPoints(table, 10)
-          if (records.length === 0) return null
+          const isExpanded = expandedTable === table
+          const records = isExpanded
+            ? getAllTopRecordsByPoints(table, 10)
+            : getTopRecordsByPoints(table, 10)
+          if (records.length === 0 && !isExpanded) {
+            // Check if there are any records at all for collapsed view
+            const allRecords = getTopRecordsByPoints(table, 1)
+            if (allRecords.length === 0) return null
+          }
 
           return (
             <div key={table} className="bg-space-dark rounded-xl p-3">
-              {/* Table header */}
-              <div className="flex items-center gap-2 mb-2">
+              {/* Table header - clickable */}
+              <button
+                className="flex items-center gap-2 mb-2 w-full text-left"
+                onClick={() => setExpandedTable(isExpanded ? null : table)}
+              >
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ${PLANET_COLORS[table - 1]}`}>
                   {table}
                 </div>
-                <span className="text-white font-medium text-sm">Tabla del {table}</span>
-              </div>
+                <span className="text-white font-medium text-sm flex-1">Tabla del {table}</span>
+                <span className="text-white/40 text-xs">
+                  {isExpanded ? '▲ Mejores tiempos' : '▼ Ver detalle'}
+                </span>
+              </button>
 
               {/* Column headers */}
               <div className="flex items-center gap-1 text-[10px] text-white/40 mb-1 pl-7 pr-1">
@@ -119,7 +133,7 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
                   const timeSeconds = Math.round(record.timeMs / 1000)
                   return (
                     <div
-                      key={`${record.userId}-${index}`}
+                      key={`${record.userId}-${record.date}-${index}`}
                       className={`flex items-center gap-1 text-xs rounded-md px-1 py-1 ${
                         index === 0 ? 'bg-gold/10' : ''
                       }`}
@@ -218,7 +232,7 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
                       exit={{ opacity: 0, x: 10 }}
                     >
                       <p className="text-white/60 text-sm mb-3 text-center">
-                        Top 10 por tabla (tiempo + 5s por fallo)
+                        Mejor por jugador · Toca una tabla para ver todos los tiempos
                       </p>
                       {renderRecords()}
                     </motion.div>

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import type { StarLevel, SessionResult } from '@/types/game.types'
 import { ParticleSystem } from '@/components/game/ParticleSystem'
 import { useSoundContext } from '@/contexts/SoundContext'
-import { useRecordsStore, type RecordResult } from '@/store/recordsStore'
+import { useRecordsStore, type RecordResult, type TableRecord } from '@/store/recordsStore'
 import { useUserStore } from '@/store/userStore'
 
 interface CelebrationScreenProps {
@@ -66,9 +66,9 @@ export function CelebrationScreen({
   const [showRecordBurst, setShowRecordBurst] = useState(false)
   const { playSound } = useSoundContext()
   const currentUserId = useUserStore((state) => state.currentUserId)
-  const getAllRecordsByPoints = useRecordsStore((state) => state.getAllRecordsByPoints)
+  const getTopRecordsByPoints = useRecordsStore((state) => state.getTopRecordsByPoints)
 
-  const leaderboard = tableNumber > 0 ? getAllRecordsByPoints(tableNumber) : []
+  const leaderboard = tableNumber > 0 ? getTopRecordsByPoints(tableNumber, 10) : []
 
   // Play celebration sound on mount
   useEffect(() => {
@@ -250,7 +250,7 @@ export function CelebrationScreen({
             Ranking — Tabla del {tableNumber}
           </p>
           <div className="bg-space-navy rounded-xl p-3 space-y-1.5">
-            {leaderboard.slice(0, 5).map((record, index) => {
+            {leaderboard.slice(0, 5).map((record: TableRecord, index: number) => {
               const isCurrentUser = record.userId === currentUserId
               return (
                 <motion.div
@@ -280,7 +280,7 @@ export function CelebrationScreen({
                 <div className="flex items-center gap-2 text-sm rounded-lg px-2 py-1.5 bg-gold/15 border border-gold/30">
                   <span className="w-7 text-center shrink-0">{recordResult.position}º</span>
                   <span className="flex-1 truncate text-gold font-semibold">
-                    {leaderboard.find((r) => r.userId === currentUserId)?.userName} (tú)
+                    {leaderboard.find((r: TableRecord) => r.userId === currentUserId)?.userName} (tú)
                   </span>
                   <span className="font-mono text-xs text-gold">
                     {recordResult.points} pts

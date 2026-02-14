@@ -258,7 +258,7 @@ export function Planet({ planet, onClick, showUnlockAnimation, size = 'medium' }
 
       {/* Stars for completed planets - below the planet in 2 rows (3+2) */}
       {isCompleted && planet.stars > 0 && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col items-center" style={{ bottom: size === 'small' ? '-1px' : size === 'medium' ? '-2px' : '-3px', lineHeight: 1, gap: 0 }}>
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col items-center" style={{ bottom: size === 'small' ? '10%' : size === 'medium' ? '10%' : '10%', lineHeight: 1, gap: 0 }}>
           {/* Top row: up to 3 stars */}
           <div className="flex" style={{ gap: 0, marginBottom: '-2px' }}>
             {Array.from({ length: Math.min(planet.stars, 3) }).map((_, i) => (
