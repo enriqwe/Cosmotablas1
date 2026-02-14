@@ -9,6 +9,8 @@ import { Starfield } from '@/components/ui/Starfield'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { StatisticsPanel } from '@/components/ui/StatisticsPanel'
 import { StartScreen } from '@/features/start/StartScreen'
+import { submitGlobalRecord } from '@/services/leaderboardApi'
+import { calculatePoints } from '@/store/recordsStore'
 
 // Lazy load non-critical components
 const CelebrationScreen = lazy(() =>
@@ -132,6 +134,16 @@ function App() {
         )
         setLastRecordResult(recordResult)
         setLastTableNumber(planet.table)
+
+        // Fire-and-forget: sync to global leaderboard
+        submitGlobalRecord({
+          userId: currentUserId,
+          userName: currentUser.name,
+          tableNumber: planet.table,
+          timeMs: result.totalTimeMs,
+          errors: result.wrongCount,
+          points: calculatePoints(result.totalTimeMs, result.wrongCount),
+        })
       } else {
         setLastRecordResult(null)
         setLastTableNumber(0)

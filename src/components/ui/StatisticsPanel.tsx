@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/store/gameStore'
 import { useRecordsStore, type TableRecord } from '@/store/recordsStore'
+import { fetchGlobalLeaderboard, fetchTableLeaderboard } from '@/services/leaderboardApi'
 
 interface StatisticsPanelProps {
   isOpen: boolean
@@ -31,6 +32,7 @@ const PLANET_COLORS: Record<number, string> = {
 }
 
 type TabType = 'progress' | 'records'
+type DataSource = 'local' | 'global'
 
 function formatDate(timestamp: number): string {
   const d = new Date(timestamp)
@@ -53,15 +55,53 @@ function getMedal(position: number): string {
 export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('records')
   const [expandedTable, setExpandedTable] = useState<number | null>(null)
+  const [dataSource, setDataSource] = useState<DataSource>('local')
+  const [globalRecords, setGlobalRecords] = useState<Record<number, TableRecord[]>>({})
+  const [globalAllRecords, setGlobalAllRecords] = useState<Record<number, TableRecord[]>>({})
+  const [isLoadingGlobal, setIsLoadingGlobal] = useState(false)
+  const [globalError, setGlobalError] = useState<string | null>(null)
+
   const planets = useGameStore((state) => state.planets)
   const totalStars = useGameStore((state) => state.totalStars)
-  const { getTopRecordsByPoints, getAllTopRecordsByPoints, getTablesWithRecords } = useRecordsStore()
+  const { getTopRecordsByPoints, getAllTopRecordsByPoints } = useRecordsStore()
 
   const maxStars = planets.length * 5
   const completedPlanets = planets.filter((p) => p.status === 'completed').length
   const progressPercent = Math.round((completedPlanets / planets.length) * 100)
 
-  const tablesWithRecords = getTablesWithRecords()
+  // Fetch global data when switching to global view
+  useEffect(() => {
+    if (isOpen && activeTab === 'records' && dataSource === 'global') {
+      setIsLoadingGlobal(true)
+      setGlobalError(null)
+      fetchGlobalLeaderboard()
+        .then(setGlobalRecords)
+        .catch(() => setGlobalError('Error al cargar datos globales'))
+        .finally(() => setIsLoadingGlobal(false))
+    }
+  }, [isOpen, activeTab, dataSource])
+
+  // Reset global state when panel closes
+  useEffect(() => {
+    if (!isOpen) {
+      setGlobalAllRecords({})
+      setGlobalError(null)
+    }
+  }, [isOpen])
+
+  const handleTableExpand = useCallback((table: number) => {
+    const newExpanded = expandedTable === table ? null : table
+    setExpandedTable(newExpanded)
+
+    // Fetch detailed global records when expanding in global mode
+    if (newExpanded && dataSource === 'global' && !globalAllRecords[newExpanded]) {
+      fetchTableLeaderboard(newExpanded, 'all')
+        .then((records) => {
+          setGlobalAllRecords((prev) => ({ ...prev, [newExpanded]: records }))
+        })
+        .catch(() => {})
+    }
+  }, [expandedTable, dataSource, globalAllRecords])
 
   const renderStars = (count: number) => {
     return (
@@ -78,12 +118,17 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
     )
   }
 
-  const renderRecords = () => {
-    if (tablesWithRecords.length === 0) {
+  const renderRecordsList = (
+    getBestFn: (table: number) => TableRecord[],
+    getAllFn: (table: number) => TableRecord[],
+  ) => {
+    const hasAnyRecords = [2, 3, 4, 5, 6, 7, 8, 9].some((t) => getBestFn(t).length > 0)
+
+    if (!hasAnyRecords) {
       return (
         <div className="text-center text-white/50 py-8">
-          <p className="text-4xl mb-2">🏆</p>
-          <p>¡Aún no hay récords!</p>
+          <p className="text-4xl mb-2">{dataSource === 'global' ? '🌍' : '🏆'}</p>
+          <p>{dataSource === 'global' ? '¡Aún no hay récords globales!' : '¡Aún no hay récords!'}</p>
           <p className="text-sm">Completa tablas para aparecer aquí</p>
         </div>
       )
@@ -93,21 +138,15 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
       <div className="space-y-4">
         {[2, 3, 4, 5, 6, 7, 8, 9].map((table) => {
           const isExpanded = expandedTable === table
-          const records = isExpanded
-            ? getAllTopRecordsByPoints(table, 10)
-            : getTopRecordsByPoints(table, 10)
-          if (records.length === 0 && !isExpanded) {
-            // Check if there are any records at all for collapsed view
-            const allRecords = getTopRecordsByPoints(table, 1)
-            if (allRecords.length === 0) return null
-          }
+          const records = isExpanded ? getAllFn(table) : getBestFn(table)
+          if (records.length === 0) return null
 
           return (
             <div key={table} className="bg-space-dark rounded-xl p-3">
               {/* Table header - clickable */}
               <button
                 className="flex items-center gap-2 mb-2 w-full text-left"
-                onClick={() => setExpandedTable(isExpanded ? null : table)}
+                onClick={() => handleTableExpand(table)}
               >
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ${PLANET_COLORS[table - 1]}`}>
                   {table}
@@ -154,6 +193,49 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
           )
         })}
       </div>
+    )
+  }
+
+  const renderRecords = () => {
+    if (dataSource === 'global') {
+      if (isLoadingGlobal) {
+        return (
+          <div className="text-center text-white/50 py-8">
+            <motion.p
+              className="text-4xl mb-2"
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            >
+              🌍
+            </motion.p>
+            <p>Cargando ranking global...</p>
+          </div>
+        )
+      }
+      if (globalError) {
+        return (
+          <div className="text-center text-white/50 py-8">
+            <p className="text-4xl mb-2">⚠️</p>
+            <p>{globalError}</p>
+            <button
+              onClick={() => setDataSource('local')}
+              className="text-space-blue text-sm mt-2 underline"
+            >
+              Ver récords locales
+            </button>
+          </div>
+        )
+      }
+      return renderRecordsList(
+        (table) => globalRecords[table] || [],
+        (table) => globalAllRecords[table] || globalRecords[table] || [],
+      )
+    }
+
+    // Local mode
+    return renderRecordsList(
+      (table) => getTopRecordsByPoints(table, 10),
+      (table) => getAllTopRecordsByPoints(table, 10),
     )
   }
 
@@ -231,9 +313,38 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                     >
-                      <p className="text-white/60 text-sm mb-3 text-center">
-                        Mejor por jugador · Toca una tabla para ver todos los tiempos
+                      {/* Local / Global toggle */}
+                      <div className="flex justify-center mb-3">
+                        <div className="bg-space-dark rounded-full p-0.5 flex">
+                          <button
+                            onClick={() => { setDataSource('local'); setExpandedTable(null) }}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              dataSource === 'local'
+                                ? 'bg-space-blue text-white'
+                                : 'text-white/50 hover:text-white/70'
+                            }`}
+                          >
+                            Este dispositivo
+                          </button>
+                          <button
+                            onClick={() => { setDataSource('global'); setExpandedTable(null) }}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              dataSource === 'global'
+                                ? 'bg-space-purple text-white'
+                                : 'text-white/50 hover:text-white/70'
+                            }`}
+                          >
+                            Global 🌍
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-white/60 text-xs mb-3 text-center">
+                        {dataSource === 'local'
+                          ? 'Mejor por jugador · Toca una tabla para ver detalle'
+                          : 'Ranking mundial · Toca una tabla para ver detalle'}
                       </p>
+
                       {renderRecords()}
                     </motion.div>
                   )}
