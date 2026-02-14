@@ -258,14 +258,14 @@ export function Planet({ planet, onClick, showUnlockAnimation, size = 'medium' }
 
       {/* Stars for completed planets - below the planet in 2 rows (3+2) */}
       {isCompleted && planet.stars > 0 && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-px" style={{ bottom: size === 'small' ? '-2px' : size === 'medium' ? '-4px' : '-5px' }}>
+        <div className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col items-center" style={{ bottom: size === 'small' ? '-1px' : size === 'medium' ? '-2px' : '-3px', lineHeight: 1, gap: 0 }}>
           {/* Top row: up to 3 stars */}
-          <div className="flex gap-px">
+          <div className="flex" style={{ gap: 0, marginBottom: '-2px' }}>
             {Array.from({ length: Math.min(planet.stars, 3) }).map((_, i) => (
               <motion.span
                 key={i}
-                className="text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.8)]"
-                style={{ fontSize: size === 'small' ? '7px' : size === 'medium' ? '9px' : '11px' }}
+                className="text-yellow-400 drop-shadow-[0_0_3px_rgba(255,215,0,0.8)]"
+                style={{ fontSize: size === 'small' ? '7px' : size === 'medium' ? '8px' : '10px', lineHeight: 1 }}
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: i * 0.08, type: 'spring' }}
@@ -276,12 +276,12 @@ export function Planet({ planet, onClick, showUnlockAnimation, size = 'medium' }
           </div>
           {/* Bottom row: stars 4 and 5 */}
           {planet.stars > 3 && (
-            <div className="flex gap-px">
+            <div className="flex" style={{ gap: 0 }}>
               {Array.from({ length: planet.stars - 3 }).map((_, i) => (
                 <motion.span
                   key={i + 3}
-                  className="text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.8)]"
-                  style={{ fontSize: size === 'small' ? '7px' : size === 'medium' ? '9px' : '11px' }}
+                  className="text-yellow-400 drop-shadow-[0_0_3px_rgba(255,215,0,0.8)]"
+                  style={{ fontSize: size === 'small' ? '7px' : size === 'medium' ? '8px' : '10px', lineHeight: 1 }}
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: (i + 3) * 0.08, type: 'spring' }}
