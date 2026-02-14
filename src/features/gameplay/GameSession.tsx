@@ -121,22 +121,21 @@ export function GameSession({ onSessionEnd, onExit }: GameSessionProps) {
         </div>
       </div>
 
-      {/* Question area */}
-      <div className="flex-1 flex flex-col items-center justify-end pb-2">
+      {/* Question + Keyboard stacked at the top */}
+      <div className="flex flex-col items-center pt-2">
         <QuestionCard
           question={currentQuestion}
           userAnswer={currentAnswer}
           feedback={feedback}
         />
-      </div>
 
-      {/* Keyboard */}
-      <div className="pb-4 pt-1">
-        <NumericKeyboard
-          onNumberPress={handleNumberPress}
-          onDelete={handleDelete}
-          onSubmit={handleSubmit}
-        />
+        <div className="mt-2">
+          <NumericKeyboard
+            onNumberPress={handleNumberPress}
+            onDelete={handleDelete}
+            onSubmit={handleSubmit}
+          />
+        </div>
       </div>
     </div>
   )
