@@ -218,7 +218,7 @@ function App() {
       />
 
       <AnimatePresence mode="wait">
-        {currentScreen === 'start' && (
+        {currentScreen === 'start' ? (
           <motion.div
             key="start"
             initial={{ opacity: 0 }}
@@ -228,111 +228,105 @@ function App() {
           >
             <StartScreen onStart={handleStartGame} />
           </motion.div>
-        )}
-
-        {currentScreen === 'map' && (
-        <motion.div
-          key="map"
-          className="h-screen bg-space-dark text-white font-sans flex flex-col overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {/* Header */}
-          <motion.header
-            className="p-4 flex items-center justify-between"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+        ) : currentScreen === 'game' ? (
+          <motion.div
+            key="game"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.3 }}
           >
-            {/* User info & logout */}
-            <motion.button
-              onClick={handleLogout}
-              className="flex items-center gap-2 bg-space-navy/50 rounded-full px-3 py-2 text-white/80 hover:text-white hover:bg-space-navy transition-colors"
-              whileTap={{ scale: 0.95 }}
-              title="Cambiar jugador"
-            >
-              <span className="text-lg">{currentUser ? getAvatarEmoji(currentUser.avatar) : '👤'}</span>
-              <span className="text-sm font-medium max-w-20 truncate">{currentUser?.name || 'Jugador'}</span>
-            </motion.button>
-            <div className="text-center">
-              <h1 className="text-xl font-bold text-gold">{APP_NAME}</h1>
-            </div>
-            <div className="flex gap-2">
-              {/* Reset button */}
-              <motion.button
-                onClick={() => setShowResetConfirm(true)}
-                className="w-10 h-10 bg-space-navy/50 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-space-navy transition-colors"
-                whileTap={{ scale: 0.9 }}
-                title="Reiniciar progreso"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-              </motion.button>
-            </div>
-          </motion.header>
-
-          {/* Star Counter */}
-          <StarCounter />
-
-          {/* Main Content - Solar Map */}
-          <SolarMap
-            onPlanetClick={handlePlanetClick}
-            onSunClick={() => setShowStats(true)}
-            newlyUnlockedPlanetId={newlyUnlockedPlanetId}
-          />
-        </motion.div>
-      )}
-
-      {currentScreen === 'game' && (
-        <motion.div
-          key="game"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          transition={{ duration: 0.3 }}
-        >
-          <GameSession
-            onSessionEnd={handleSessionEnd}
-            onExit={handleExit}
-          />
-        </motion.div>
-      )}
-
-      {currentScreen === 'celebration' && (
-        <motion.div
-          key="celebration"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Suspense fallback={<LoadingSpinner />}>
-            <CelebrationScreen
-              stars={lastStars}
-              sessionResult={lastSessionResult}
-              isFirstCompletion={isFirstCompletion}
-              recordResult={lastRecordResult}
-              tableNumber={lastTableNumber}
-              onContinue={handleCelebrationContinue}
-              onRetry={handleRetry}
+            <GameSession
+              onSessionEnd={handleSessionEnd}
+              onExit={handleExit}
             />
-          </Suspense>
-        </motion.div>
-      )}
+          </motion.div>
+        ) : currentScreen === 'celebration' ? (
+          <motion.div
+            key="celebration"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Suspense fallback={<LoadingSpinner />}>
+              <CelebrationScreen
+                stars={lastStars}
+                sessionResult={lastSessionResult}
+                isFirstCompletion={isFirstCompletion}
+                recordResult={lastRecordResult}
+                tableNumber={lastTableNumber}
+                onContinue={handleCelebrationContinue}
+                onRetry={handleRetry}
+              />
+            </Suspense>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="map"
+            className="h-screen bg-space-dark text-white font-sans flex flex-col overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Header */}
+            <motion.header
+              className="p-4 flex items-center justify-between"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* User info & logout */}
+              <motion.button
+                onClick={handleLogout}
+                className="flex items-center gap-2 bg-space-navy/50 rounded-full px-3 py-2 text-white/80 hover:text-white hover:bg-space-navy transition-colors"
+                whileTap={{ scale: 0.95 }}
+                title="Cambiar jugador"
+              >
+                <span className="text-lg">{currentUser ? getAvatarEmoji(currentUser.avatar) : '👤'}</span>
+                <span className="text-sm font-medium max-w-20 truncate">{currentUser?.name || 'Jugador'}</span>
+              </motion.button>
+              <div className="text-center">
+                <h1 className="text-xl font-bold text-gold">{APP_NAME}</h1>
+              </div>
+              <div className="flex gap-2">
+                {/* Reset button */}
+                <motion.button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="w-10 h-10 bg-space-navy/50 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:bg-space-navy transition-colors"
+                  whileTap={{ scale: 0.9 }}
+                  title="Reiniciar progreso"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </motion.button>
+              </div>
+            </motion.header>
+
+            {/* Star Counter */}
+            <StarCounter />
+
+            {/* Main Content - Solar Map */}
+            <SolarMap
+              onPlanetClick={handlePlanetClick}
+              onSunClick={() => setShowStats(true)}
+              newlyUnlockedPlanetId={newlyUnlockedPlanetId}
+            />
+          </motion.div>
+        )}
       </AnimatePresence>
     </>
   )

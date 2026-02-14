@@ -191,7 +191,7 @@ export function StartScreen({ onStart }: StartScreenProps) {
             <p className="text-white/50 text-sm text-center mb-2">
               {inputName.trim() ? 'Jugadores encontrados:' : 'Jugadores anteriores:'}
             </p>
-            <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+            <div className="max-h-48 overflow-y-auto space-y-2">
               {matchingUsers.map((user) => (
                 <motion.div
                   key={user.id}
