@@ -10,8 +10,9 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { StatisticsPanel } from '@/components/ui/StatisticsPanel'
 import { GalaxyCelebration } from '@/components/ui/GalaxyCelebration'
 import { StartScreen } from '@/features/start/StartScreen'
-import { submitGlobalRecord } from '@/services/leaderboardApi'
+import { submitGlobalRecord, submitMistakes } from '@/services/leaderboardApi'
 import { calculatePoints } from '@/store/recordsStore'
+import { useMistakesStore } from '@/store/mistakesStore'
 
 // Lazy load non-critical components
 const CelebrationScreen = lazy(() =>
@@ -48,6 +49,7 @@ const initialSessionResult: SessionResult = {
   wrongCount: 0,
   totalTimeMs: 0,
   averageResponseTimeMs: 0,
+  mistakes: [],
 }
 
 function App() {
@@ -155,6 +157,12 @@ function App() {
       } else {
         setLastRecordResult(null)
         setLastTableNumber(0)
+      }
+
+      // Save mistakes locally + fire-and-forget to global
+      if (currentUserId && result.mistakes.length > 0) {
+        useMistakesStore.getState().addMistakes(currentUserId, result.mistakes)
+        submitMistakes(result.mistakes)
       }
     }
 

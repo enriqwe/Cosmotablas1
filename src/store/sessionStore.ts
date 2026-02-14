@@ -98,7 +98,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   endSession: () => {
-    const { sessionAnswers, sessionStartTime } = get()
+    const { sessionAnswers, sessionStartTime, questions } = get()
     const now = Date.now()
 
     const correctCount = sessionAnswers.filter((sa) => sa.isCorrect).length
@@ -115,6 +115,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const averageResponseTimeMs = responseTimes.length > 0
       ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
       : 0
+
+    // Extract wrong answers before clearing session
+    const mistakes = sessionAnswers
+      .map((sa, idx) => ({ sa, q: questions[idx] }))
+      .filter(({ sa }) => !sa.isCorrect)
+      .map(({ q }) => ({ table: q.table, multiplier: q.multiplier }))
 
     set({
       isPlaying: false,
@@ -133,6 +139,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       wrongCount,
       totalTimeMs,
       averageResponseTimeMs,
+      mistakes,
     }
   },
 

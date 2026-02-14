@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/store/gameStore'
 import { useRecordsStore, type TableRecord } from '@/store/recordsStore'
-import { fetchGlobalLeaderboard, fetchTableLeaderboard } from '@/services/leaderboardApi'
+import { useMistakesStore, type MistakeEntry } from '@/store/mistakesStore'
+import { useUserStore } from '@/store/userStore'
+import { fetchGlobalLeaderboard, fetchTableLeaderboard, fetchGlobalMistakes } from '@/services/leaderboardApi'
 
 interface StatisticsPanelProps {
   isOpen: boolean
@@ -31,7 +33,7 @@ const PLANET_COLORS: Record<number, string> = {
   8: 'bg-pink-500',
 }
 
-type TabType = 'progress' | 'records'
+type TabType = 'progress' | 'records' | 'mejora'
 type DataSource = 'local' | 'global'
 
 function formatDate(timestamp: number): string {
@@ -60,10 +62,16 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
   const [globalAllRecords, setGlobalAllRecords] = useState<Record<number, TableRecord[]>>({})
   const [isLoadingGlobal, setIsLoadingGlobal] = useState(false)
   const [globalError, setGlobalError] = useState<string | null>(null)
+  const [mejoraSource, setMejoraSource] = useState<DataSource>('local')
+  const [globalMistakes, setGlobalMistakes] = useState<MistakeEntry[]>([])
+  const [isLoadingMistakes, setIsLoadingMistakes] = useState(false)
+  const [mistakesError, setMistakesError] = useState<string | null>(null)
 
   const planets = useGameStore((state) => state.planets)
   const totalStars = useGameStore((state) => state.totalStars)
   const { getTopRecordsByPoints, getAllTopRecordsByPoints } = useRecordsStore()
+  const currentUserId = useUserStore((state) => state.currentUserId)
+  const getUserTopMistakes = useMistakesStore((state) => state.getUserTopMistakes)
 
   const maxStars = planets.length * 5
   const completedPlanets = planets.filter((p) => p.status === 'completed').length
@@ -81,11 +89,25 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
     }
   }, [isOpen, activeTab, dataSource])
 
+  // Fetch global mistakes when switching to global view on Mejora tab
+  useEffect(() => {
+    if (isOpen && activeTab === 'mejora' && mejoraSource === 'global') {
+      setIsLoadingMistakes(true)
+      setMistakesError(null)
+      fetchGlobalMistakes()
+        .then(setGlobalMistakes)
+        .catch(() => setMistakesError('Error al cargar datos globales'))
+        .finally(() => setIsLoadingMistakes(false))
+    }
+  }, [isOpen, activeTab, mejoraSource])
+
   // Reset global state when panel closes
   useEffect(() => {
     if (!isOpen) {
       setGlobalAllRecords({})
       setGlobalError(null)
+      setGlobalMistakes([])
+      setMistakesError(null)
     }
   }, [isOpen])
 
@@ -239,9 +261,100 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
     )
   }
 
+  const renderMistakesList = (mistakes: MistakeEntry[]) => {
+    if (mistakes.length === 0) {
+      return (
+        <div className="text-center text-white/50 py-8">
+          <p className="text-4xl mb-2">{mejoraSource === 'global' ? '🌍' : '🎯'}</p>
+          <p>{mejoraSource === 'global' ? '¡Aún no hay datos globales!' : '¡Sin errores registrados!'}</p>
+          <p className="text-sm mt-1">Los errores aparecerán aquí al jugar</p>
+        </div>
+      )
+    }
+
+    const maxCount = mistakes[0].count
+
+    return (
+      <div className="space-y-2">
+        {mistakes.map((m, i) => {
+          const barWidth = Math.max(10, Math.round((m.count / maxCount) * 100))
+          return (
+            <motion.div
+              key={`${m.table}x${m.multiplier}`}
+              className="bg-space-dark rounded-xl p-3 flex items-center gap-3"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.03 }}
+            >
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 ${PLANET_COLORS[m.table - 1]}`}>
+                {m.table}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-medium text-sm">
+                  {m.table} × {m.multiplier} = ?
+                </p>
+                <div className="mt-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    className="h-full bg-warning rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${barWidth}%` }}
+                    transition={{ duration: 0.5, delay: i * 0.03 }}
+                  />
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-warning font-bold text-sm">{m.count}</p>
+                <p className="text-white/40 text-[10px]">{m.count === 1 ? 'error' : 'errores'}</p>
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  const renderMejora = () => {
+    if (mejoraSource === 'global') {
+      if (isLoadingMistakes) {
+        return (
+          <div className="text-center text-white/50 py-8">
+            <motion.p
+              className="text-4xl mb-2"
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            >
+              🌍
+            </motion.p>
+            <p>Cargando errores globales...</p>
+          </div>
+        )
+      }
+      if (mistakesError) {
+        return (
+          <div className="text-center text-white/50 py-8">
+            <p className="text-4xl mb-2">⚠️</p>
+            <p>{mistakesError}</p>
+            <button
+              onClick={() => setMejoraSource('local')}
+              className="text-space-blue text-sm mt-2 underline"
+            >
+              Ver mis errores
+            </button>
+          </div>
+        )
+      }
+      return renderMistakesList(globalMistakes)
+    }
+
+    // Local mode
+    const localMistakes = currentUserId ? getUserTopMistakes(currentUserId, 15) : []
+    return renderMistakesList(localMistakes)
+  }
+
   const tabs: { id: TabType; label: string; icon: string }[] = [
     { id: 'records', label: 'Récords', icon: '🏆' },
-    { id: 'progress', label: 'Mi Progreso', icon: '📈' },
+    { id: 'progress', label: 'Progreso', icon: '📈' },
+    { id: 'mejora', label: 'Mejora', icon: '🎯' },
   ]
 
   return (
@@ -306,7 +419,7 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4">
                 <AnimatePresence mode="wait">
-                  {activeTab === 'records' && (
+                  {activeTab === 'records' ? (
                     <motion.div
                       key="records"
                       initial={{ opacity: 0, x: -10 }}
@@ -347,9 +460,7 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
 
                       {renderRecords()}
                     </motion.div>
-                  )}
-
-                  {activeTab === 'progress' && (
+                  ) : activeTab === 'progress' ? (
                     <motion.div
                       key="progress"
                       initial={{ opacity: 0, x: -10 }}
@@ -437,6 +548,47 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
                           </motion.div>
                         ))}
                       </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="mejora"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                    >
+                      {/* Local / Global toggle */}
+                      <div className="flex justify-center mb-3">
+                        <div className="bg-space-dark rounded-full p-0.5 flex">
+                          <button
+                            onClick={() => setMejoraSource('local')}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              mejoraSource === 'local'
+                                ? 'bg-space-blue text-white'
+                                : 'text-white/50 hover:text-white/70'
+                            }`}
+                          >
+                            Mis errores
+                          </button>
+                          <button
+                            onClick={() => setMejoraSource('global')}
+                            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                              mejoraSource === 'global'
+                                ? 'bg-space-purple text-white'
+                                : 'text-white/50 hover:text-white/70'
+                            }`}
+                          >
+                            Global 🌍
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-white/60 text-xs mb-3 text-center">
+                        {mejoraSource === 'local'
+                          ? 'Preguntas donde más fallas'
+                          : 'Preguntas más difíciles para todos'}
+                      </p>
+
+                      {renderMejora()}
                     </motion.div>
                   )}
                 </AnimatePresence>

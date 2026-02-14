@@ -36,4 +36,5 @@ export interface SessionResult {
   wrongCount: number
   totalTimeMs: number
   averageResponseTimeMs: number
+  mistakes: { table: number; multiplier: number }[]
 }

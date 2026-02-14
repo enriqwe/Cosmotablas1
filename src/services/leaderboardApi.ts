@@ -57,6 +57,31 @@ export async function fetchGlobalLeaderboard(): Promise<Record<number, TableReco
   return result
 }
 
+/** Fire-and-forget: submit mistakes to global tracker */
+export async function submitMistakes(
+  mistakes: { table: number; multiplier: number }[]
+): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/mistakes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mistakes }),
+    })
+  } catch {
+    // Silent failure - global sync is best-effort
+  }
+}
+
+/** Fetch global most-common mistakes */
+export async function fetchGlobalMistakes(): Promise<
+  { table: number; multiplier: number; count: number }[]
+> {
+  const response = await fetch(`${API_BASE}/mistakes`)
+  if (!response.ok) throw new Error('Failed to load global mistakes')
+  const data = await response.json()
+  return data.mistakes || []
+}
+
 /** Fetch global records for a specific table */
 export async function fetchTableLeaderboard(
   tableNumber: number,
