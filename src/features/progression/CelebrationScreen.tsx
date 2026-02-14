@@ -18,9 +18,11 @@ interface CelebrationScreenProps {
 
 const starMessages: Record<StarLevel, string> = {
   0: '¡Sigue practicando!',
-  1: '¡Buen trabajo!',
-  2: '¡Muy bien!',
-  3: '¡Excelente!',
+  1: '¡Completado!',
+  2: '¡Buen trabajo!',
+  3: '¡Muy bien!',
+  4: '¡Excelente!',
+  5: '¡¡PERFECTO!!',
 }
 
 const starColors: Record<StarLevel, string> = {
@@ -28,6 +30,8 @@ const starColors: Record<StarLevel, string> = {
   1: 'text-amber-600',
   2: 'text-gray-300',
   3: 'text-yellow-400',
+  4: 'text-yellow-300',
+  5: 'text-yellow-200',
 }
 
 function formatTime(ms: number): string {
@@ -103,7 +107,7 @@ export function CelebrationScreen({
 
   const renderStars = () => {
     const starElements = []
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 5; i++) {
       const isEarned = i <= stars
       starElements.push(
         <motion.span
@@ -111,12 +115,12 @@ export function CelebrationScreen({
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{
-            delay: 0.2 + i * 0.2,
+            delay: 0.2 + i * 0.15,
             type: 'spring',
             stiffness: 200,
             damping: 15,
           }}
-          className={`text-5xl ${isEarned ? starColors[stars] : 'text-gray-600'}`}
+          className={`text-4xl ${isEarned ? starColors[stars] : 'text-gray-600'}`}
         >
           ★
         </motion.span>

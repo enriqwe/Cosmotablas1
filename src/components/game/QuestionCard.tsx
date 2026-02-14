@@ -12,7 +12,7 @@ export function QuestionCard({ question, userAnswer, feedback }: QuestionCardPro
     <div className="flex flex-col items-center">
       {/* Question Card */}
       <motion.div
-        className={`bg-space-navy rounded-2xl p-8 mx-4 border-4 transition-colors duration-300 ${
+        className={`bg-space-navy rounded-2xl p-6 mx-4 border-4 transition-colors duration-300 ${
           feedback === 'correct'
             ? 'border-success'
             : feedback === 'incorrect'
@@ -34,7 +34,7 @@ export function QuestionCard({ question, userAnswer, feedback }: QuestionCardPro
       </motion.div>
 
       {/* Feedback Message - Below the card */}
-      <div className="h-16 flex items-center justify-center mt-4">
+      <div className="h-12 flex items-center justify-center mt-2">
         <AnimatePresence mode="wait">
           {feedback === 'correct' && (
             <motion.div

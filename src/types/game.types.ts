@@ -1,6 +1,6 @@
 export type PlanetStatus = 'locked' | 'unlocked' | 'completed'
 
-export type StarLevel = 0 | 1 | 2 | 3
+export type StarLevel = 0 | 1 | 2 | 3 | 4 | 5
 
 export interface Planet {
   id: number

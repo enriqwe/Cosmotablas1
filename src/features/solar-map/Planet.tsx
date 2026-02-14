@@ -258,15 +258,15 @@ export function Planet({ planet, onClick, showUnlockAnimation, size = 'medium' }
 
       {/* Stars for completed planets - positioned above the number */}
       {isCompleted && planet.stars > 0 && (
-        <div className="absolute top-1 left-1/2 -translate-x-1/2 flex gap-0.5 z-30">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 flex gap-px z-30">
           {Array.from({ length: planet.stars }).map((_, i) => (
             <motion.span
               key={i}
               className="text-yellow-400 drop-shadow-[0_0_4px_rgba(255,215,0,0.8)]"
-              style={{ fontSize: size === 'small' ? '8px' : size === 'medium' ? '10px' : '12px' }}
+              style={{ fontSize: size === 'small' ? '6px' : size === 'medium' ? '7px' : '9px' }}
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
-              transition={{ delay: i * 0.1, type: 'spring' }}
+              transition={{ delay: i * 0.08, type: 'spring' }}
             >
               ★
             </motion.span>

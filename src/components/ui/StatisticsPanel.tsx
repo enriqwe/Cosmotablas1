@@ -30,29 +30,33 @@ const PLANET_COLORS: Record<number, string> = {
   8: 'bg-pink-500',
 }
 
-type TabType = 'progress' | 'errors' | 'time' | 'points'
+type TabType = 'progress' | 'records'
 
-function formatTime(ms: number): string {
-  const seconds = Math.round(ms / 1000)
-  return `${seconds}s`
+function formatDate(timestamp: number): string {
+  const d = new Date(timestamp)
+  const day = d.getDate().toString().padStart(2, '0')
+  const month = (d.getMonth() + 1).toString().padStart(2, '0')
+  const hours = d.getHours().toString().padStart(2, '0')
+  const mins = d.getMinutes().toString().padStart(2, '0')
+  return `${day}/${month} ${hours}:${mins}`
 }
 
 function getMedal(position: number): string {
   switch (position) {
-    case 0: return '🥇'
-    case 1: return '🥈'
-    case 2: return '🥉'
-    default: return `${position + 1}º`
+    case 1: return '🥇'
+    case 2: return '🥈'
+    case 3: return '🥉'
+    default: return `${position}º`
   }
 }
 
 export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('progress')
+  const [activeTab, setActiveTab] = useState<TabType>('records')
   const planets = useGameStore((state) => state.planets)
   const totalStars = useGameStore((state) => state.totalStars)
-  const { getTopRecordsByErrors, getTopRecordsByTime, getTopRecordsByPoints, getTablesWithRecords } = useRecordsStore()
+  const { getTopRecordsByPoints, getTablesWithRecords } = useRecordsStore()
 
-  const maxStars = planets.length * 3
+  const maxStars = planets.length * 5
   const completedPlanets = planets.filter((p) => p.status === 'completed').length
   const progressPercent = Math.round((completedPlanets / planets.length) * 100)
 
@@ -60,8 +64,8 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
 
   const renderStars = (count: number) => {
     return (
-      <span className="text-sm">
-        {[1, 2, 3].map((i) => (
+      <span className="text-xs">
+        {[1, 2, 3, 4, 5].map((i) => (
           <span
             key={i}
             className={i <= count ? 'text-yellow-400' : 'text-gray-600'}
@@ -73,14 +77,11 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
     )
   }
 
-  const renderLeaderboard = (
-    getRecords: (table: number) => TableRecord[],
-    getValue: (record: TableRecord) => string
-  ) => {
+  const renderRecords = () => {
     if (tablesWithRecords.length === 0) {
       return (
         <div className="text-center text-white/50 py-8">
-          <p className="text-4xl mb-2">📊</p>
+          <p className="text-4xl mb-2">🏆</p>
           <p>¡Aún no hay récords!</p>
           <p className="text-sm">Completa tablas para aparecer aquí</p>
         </div>
@@ -90,28 +91,50 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
     return (
       <div className="space-y-4">
         {[2, 3, 4, 5, 6, 7, 8, 9].map((table) => {
-          const records = getRecords(table)
+          const records = getTopRecordsByPoints(table, 10)
           if (records.length === 0) return null
 
           return (
             <div key={table} className="bg-space-dark rounded-xl p-3">
+              {/* Table header */}
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${PLANET_COLORS[table - 1]}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ${PLANET_COLORS[table - 1]}`}>
                   {table}
                 </div>
-                <span className="text-white font-medium">Tabla del {table}</span>
+                <span className="text-white font-medium text-sm">Tabla del {table}</span>
               </div>
-              <div className="space-y-1 pl-2">
-                {records.map((record, index) => (
-                  <div
-                    key={`${record.userId}-${index}`}
-                    className="flex items-center gap-2 text-sm"
-                  >
-                    <span className="w-6">{getMedal(index)}</span>
-                    <span className="flex-1 text-white/80 truncate">{record.userName}</span>
-                    <span className="text-white/60 font-mono">{getValue(record)}</span>
-                  </div>
-                ))}
+
+              {/* Column headers */}
+              <div className="flex items-center gap-1 text-[10px] text-white/40 mb-1 pl-7 pr-1">
+                <span className="w-5 text-center shrink-0">#</span>
+                <span className="flex-1">Jugador</span>
+                <span className="w-[100px] text-right">Tiempo+Penal=Total</span>
+                <span className="w-[52px] text-right">Fecha</span>
+              </div>
+
+              {/* Records list */}
+              <div className="space-y-0.5">
+                {records.map((record: TableRecord, index: number) => {
+                  const penaltySeconds = record.errors * 5
+                  const timeSeconds = Math.round(record.timeMs / 1000)
+                  return (
+                    <div
+                      key={`${record.userId}-${index}`}
+                      className={`flex items-center gap-1 text-xs rounded-md px-1 py-1 ${
+                        index === 0 ? 'bg-gold/10' : ''
+                      }`}
+                    >
+                      <span className="w-5 text-center shrink-0">{getMedal(index + 1)}</span>
+                      <span className="flex-1 text-white/80 truncate font-medium">{record.userName}</span>
+                      <span className="w-[100px] text-right text-white/50 font-mono text-[10px]">
+                        {timeSeconds}s{penaltySeconds > 0 ? `+${penaltySeconds}s` : ''}={record.points}s
+                      </span>
+                      <span className="w-[52px] text-right text-white/35 text-[10px]">
+                        {formatDate(record.date)}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )
@@ -121,10 +144,8 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
   }
 
   const tabs: { id: TabType; label: string; icon: string }[] = [
+    { id: 'records', label: 'Récords', icon: '🏆' },
     { id: 'progress', label: 'Mi Progreso', icon: '📈' },
-    { id: 'errors', label: 'Menos Errores', icon: '✅' },
-    { id: 'time', label: 'Más Rápido', icon: '⚡' },
-    { id: 'points', label: 'Puntuación', icon: '🏆' },
   ]
 
   return (
@@ -168,19 +189,19 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-white/10 overflow-x-auto">
+              <div className="flex border-b border-white/10">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`
-                      flex-1 min-w-[80px] px-2 py-3 text-xs font-medium transition-colors
+                      flex-1 px-4 py-3 text-sm font-medium transition-colors
                       ${activeTab === tab.id
                         ? 'text-gold border-b-2 border-gold bg-space-dark/30'
                         : 'text-white/60 hover:text-white/80'}
                     `}
                   >
-                    <span className="block text-base mb-0.5">{tab.icon}</span>
+                    <span className="mr-1.5">{tab.icon}</span>
                     {tab.label}
                   </button>
                 ))}
@@ -189,6 +210,20 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-4">
                 <AnimatePresence mode="wait">
+                  {activeTab === 'records' && (
+                    <motion.div
+                      key="records"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                    >
+                      <p className="text-white/60 text-sm mb-3 text-center">
+                        Top 10 por tabla (tiempo + 5s por fallo)
+                      </p>
+                      {renderRecords()}
+                    </motion.div>
+                  )}
+
                   {activeTab === 'progress' && (
                     <motion.div
                       key="progress"
@@ -277,57 +312,6 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
                           </motion.div>
                         ))}
                       </div>
-                    </motion.div>
-                  )}
-
-                  {activeTab === 'errors' && (
-                    <motion.div
-                      key="errors"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                    >
-                      <p className="text-white/60 text-sm mb-3 text-center">
-                        Menos errores por tabla
-                      </p>
-                      {renderLeaderboard(
-                        getTopRecordsByErrors,
-                        (r) => `${r.errors} ${r.errors === 1 ? 'error' : 'errores'}`
-                      )}
-                    </motion.div>
-                  )}
-
-                  {activeTab === 'time' && (
-                    <motion.div
-                      key="time"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                    >
-                      <p className="text-white/60 text-sm mb-3 text-center">
-                        Tiempo más rápido por tabla
-                      </p>
-                      {renderLeaderboard(
-                        getTopRecordsByTime,
-                        (r) => formatTime(r.timeMs)
-                      )}
-                    </motion.div>
-                  )}
-
-                  {activeTab === 'points' && (
-                    <motion.div
-                      key="points"
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                    >
-                      <p className="text-white/60 text-sm mb-3 text-center">
-                        Puntuación (tiempo + 5s por error)
-                      </p>
-                      {renderLeaderboard(
-                        getTopRecordsByPoints,
-                        (r) => `${r.points} pts`
-                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
