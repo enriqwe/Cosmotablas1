@@ -1,4 +1,4 @@
-import { useState, useCallback, lazy, Suspense, useEffect } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { SolarMap } from '@/features/solar-map/SolarMap'
 import { GameSession } from '@/features/gameplay/GameSession'
@@ -79,14 +79,10 @@ function App() {
   const [showStats, setShowStats] = useState(false)
   const [showGalaxyCelebration, setShowGalaxyCelebration] = useState(false)
 
-  // Sync game progress when user changes
-  useEffect(() => {
-    setCurrentUser(currentUserId)
-  }, [currentUserId, setCurrentUser])
-
   const handleStartGame = useCallback(() => {
-    // Sync game progress immediately before transitioning
-    // (don't rely solely on useEffect which fires after render)
+    // Sync game progress synchronously before screen transition.
+    // Do NOT use a useEffect for this — the async timing interferes
+    // with AnimatePresence exit/enter and causes blank screens.
     const userId = useUserStore.getState().currentUserId
     if (userId) {
       setCurrentUser(userId)
@@ -96,8 +92,9 @@ function App() {
 
   const handleLogout = useCallback(() => {
     logout()
+    setCurrentUser(null)
     setCurrentScreen('start')
-  }, [logout])
+  }, [logout, setCurrentUser])
 
   const handlePlanetClick = useCallback((planetId: number) => {
     const planet = planets.find((p) => p.id === planetId)
