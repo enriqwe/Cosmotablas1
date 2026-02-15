@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 
 interface SunProps {
@@ -6,8 +7,62 @@ interface SunProps {
   onClick?: () => void
 }
 
+// Each ray layer config: how fast it rotates, how many rays, their size, etc.
+interface RayLayer {
+  id: number
+  duration: number      // rotation period in seconds
+  direction: 1 | -1     // 1 = clockwise, -1 = counter-clockwise
+  rayCount: number       // how many rays in this ring
+  width: number          // ray width in px
+  height: number         // ray height in px
+  originDist: number     // distance from center to transform-origin (px)
+  topOffset: string      // CSS top position
+  color: string          // gradient color
+  opacityRange: [number, number]  // [min, max] opacity
+  pulseDuration: number  // pulse cycle in seconds
+  scaleRange?: [number, number]   // optional scaleY pulse
+  shape: 'line' | 'ellipse'
+}
+
+function generateRayLayers(): RayLayer[] {
+  return [
+    // --- Ultra-slow wide washes (3 layers) ---
+    { id: 0, duration: 30, direction: 1, rayCount: 3, width: 32, height: 44, originDist: 18, topOffset: '5%', color: 'rgba(255,245,157,0.4)', opacityRange: [0.15, 0.45], pulseDuration: 4, shape: 'ellipse' },
+    { id: 1, duration: 35, direction: -1, rayCount: 3, width: 26, height: 38, originDist: 22, topOffset: '8%', color: 'rgba(255,230,130,0.35)', opacityRange: [0.1, 0.4], pulseDuration: 3.5, shape: 'ellipse' },
+    { id: 2, duration: 28, direction: 1, rayCount: 4, width: 30, height: 42, originDist: 16, topOffset: '3%', color: 'rgba(255,250,200,0.3)', opacityRange: [0.12, 0.42], pulseDuration: 4.5, shape: 'ellipse' },
+
+    // --- Slow broad sweeps (3 layers) ---
+    { id: 3, duration: 25, direction: 1, rayCount: 4, width: 28, height: 40, originDist: 20, topOffset: '5%', color: 'rgba(255,245,157,0.5)', opacityRange: [0.2, 0.55], pulseDuration: 3, shape: 'ellipse' },
+    { id: 4, duration: 22, direction: -1, rayCount: 5, width: 20, height: 34, originDist: 24, topOffset: '4%', color: 'rgba(255,235,100,0.4)', opacityRange: [0.15, 0.5], pulseDuration: 2.8, shape: 'ellipse' },
+    { id: 5, duration: 27, direction: 1, rayCount: 3, width: 24, height: 36, originDist: 26, topOffset: '2%', color: 'rgba(255,255,180,0.35)', opacityRange: [0.18, 0.48], pulseDuration: 3.2, shape: 'ellipse' },
+
+    // --- Medium corona flares (4 layers) ---
+    { id: 6, duration: 20, direction: 1, rayCount: 6, width: 6, height: 20, originDist: 56, topOffset: '-10px', color: 'rgba(255,238,88,0.6)', opacityRange: [0.3, 0.7], pulseDuration: 1.5, scaleRange: [0.8, 1.2], shape: 'line' },
+    { id: 7, duration: 18, direction: -1, rayCount: 5, width: 5, height: 18, originDist: 50, topOffset: '-6px', color: 'rgba(255,245,120,0.5)', opacityRange: [0.25, 0.65], pulseDuration: 1.8, scaleRange: [0.7, 1.3], shape: 'line' },
+    { id: 8, duration: 16, direction: 1, rayCount: 7, width: 4, height: 16, originDist: 52, topOffset: '-8px', color: 'rgba(255,220,80,0.55)', opacityRange: [0.2, 0.6], pulseDuration: 1.4, scaleRange: [0.85, 1.15], shape: 'line' },
+    { id: 9, duration: 23, direction: -1, rayCount: 4, width: 7, height: 22, originDist: 54, topOffset: '-12px', color: 'rgba(255,240,100,0.45)', opacityRange: [0.28, 0.68], pulseDuration: 2, scaleRange: [0.75, 1.25], shape: 'line' },
+
+    // --- Fast shimmer rays (4 layers) ---
+    { id: 10, duration: 12, direction: -1, rayCount: 8, width: 2, height: 14, originDist: 48, topOffset: '-4px', color: 'rgba(255,235,59,0.6)', opacityRange: [0.15, 0.6], pulseDuration: 1, scaleRange: [0.6, 1.3], shape: 'line' },
+    { id: 11, duration: 10, direction: 1, rayCount: 10, width: 2, height: 12, originDist: 44, topOffset: '-2px', color: 'rgba(255,245,80,0.5)', opacityRange: [0.1, 0.55], pulseDuration: 0.8, scaleRange: [0.5, 1.4], shape: 'line' },
+    { id: 12, duration: 14, direction: -1, rayCount: 6, width: 3, height: 16, originDist: 46, topOffset: '-6px', color: 'rgba(255,230,70,0.55)', opacityRange: [0.12, 0.58], pulseDuration: 1.2, scaleRange: [0.65, 1.25], shape: 'line' },
+    { id: 13, duration: 9, direction: 1, rayCount: 12, width: 1.5, height: 10, originDist: 42, topOffset: '0px', color: 'rgba(255,250,100,0.45)', opacityRange: [0.08, 0.5], pulseDuration: 0.7, scaleRange: [0.55, 1.35], shape: 'line' },
+
+    // --- Very fast micro-flickers (3 layers) ---
+    { id: 14, duration: 7, direction: -1, rayCount: 16, width: 1, height: 8, originDist: 40, topOffset: '2px', color: 'rgba(255,255,200,0.4)', opacityRange: [0.05, 0.45], pulseDuration: 0.6, scaleRange: [0.4, 1.5], shape: 'line' },
+    { id: 15, duration: 6, direction: 1, rayCount: 14, width: 1.5, height: 9, originDist: 38, topOffset: '1px', color: 'rgba(255,240,150,0.35)', opacityRange: [0.06, 0.4], pulseDuration: 0.5, scaleRange: [0.45, 1.45], shape: 'line' },
+    { id: 16, duration: 8, direction: -1, rayCount: 10, width: 2, height: 11, originDist: 36, topOffset: '0px', color: 'rgba(255,255,220,0.3)', opacityRange: [0.07, 0.42], pulseDuration: 0.65, scaleRange: [0.5, 1.4], shape: 'line' },
+
+    // --- Spotlight beams (3 layers) ---
+    { id: 17, duration: 8, direction: 1, rayCount: 1, width: 36, height: 50, originDist: 0, topOffset: '0%', color: 'rgba(255,255,224,0.35)', opacityRange: [0.15, 0.4], pulseDuration: 2, shape: 'ellipse' },
+    { id: 18, duration: 11, direction: -1, rayCount: 2, width: 24, height: 40, originDist: 10, topOffset: '5%', color: 'rgba(255,245,180,0.3)', opacityRange: [0.1, 0.35], pulseDuration: 2.5, shape: 'ellipse' },
+    { id: 19, duration: 15, direction: 1, rayCount: 2, width: 30, height: 46, originDist: 8, topOffset: '2%', color: 'rgba(255,250,200,0.25)', opacityRange: [0.12, 0.38], pulseDuration: 3, shape: 'ellipse' },
+  ]
+}
+
 export function Sun({ totalStars, maxStars, onClick }: SunProps) {
   const fillPercent = Math.min((totalStars / maxStars) * 100, 100)
+  const rayLayers = useMemo(() => generateRayLayers(), [])
 
   return (
     <motion.div
@@ -102,131 +157,54 @@ export function Sun({ totalStars, maxStars, onClick }: SunProps) {
           }}
         />
 
-        {/* Inner sweeping light — broad warm wash (slow) */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-        >
-          {[0, 90, 180, 270].map((angle) => (
+        {/* 20 ray layers — data-driven */}
+        {rayLayers.map((layer) => {
+          const angles = Array.from(
+            { length: layer.rayCount },
+            (_, i) => (360 / layer.rayCount) * i
+          )
+          return (
             <motion.div
-              key={`sweep-${angle}`}
-              className="absolute"
-              style={{
-                left: '50%',
-                top: '5%',
-                width: 28,
-                height: 40,
-                transform: `translateX(-50%) rotate(${angle}deg)`,
-                transformOrigin: '50% calc(100% + 20px)',
-                background: 'radial-gradient(ellipse at 50% 0%, rgba(255,245,157,0.5) 0%, transparent 70%)',
-                borderRadius: '50%',
-              }}
-              animate={{
-                opacity: [0.2, 0.55, 0.2],
-              }}
-              transition={{
-                duration: 3,
-                delay: angle / 400,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
-        </motion.div>
-
-        {/* Corona flares — original thin rays (medium speed) */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-        >
-          {[0, 60, 120, 180, 240, 300].map((angle) => (
-            <motion.div
-              key={angle}
-              className="absolute w-1.5 h-5 bg-gradient-to-t from-transparent via-yellow-300 to-transparent"
-              style={{
-                left: '50%',
-                top: '-10px',
-                transform: `translateX(-50%) rotate(${angle}deg)`,
-                transformOrigin: '50% calc(100% + 56px)',
-                opacity: 0.6,
-              }}
-              animate={{
-                opacity: [0.3, 0.7, 0.3],
-                scaleY: [0.8, 1.2, 0.8],
-              }}
-              transition={{
-                duration: 1.5,
-                delay: angle / 360,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
-        </motion.div>
-
-        {/* Fast narrow rays — counter-rotating for shimmer */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
-        >
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
-            <motion.div
-              key={`fast-${angle}`}
-              className="absolute"
-              style={{
-                left: '50%',
-                top: '-4px',
-                width: 2,
-                height: 14,
-                transform: `translateX(-50%) rotate(${angle}deg)`,
-                transformOrigin: '50% calc(100% + 48px)',
-                background: 'linear-gradient(to top, transparent, rgba(255,235,59,0.6), transparent)',
-              }}
-              animate={{
-                opacity: [0.15, 0.6, 0.15],
-                scaleY: [0.6, 1.3, 0.6],
-              }}
-              transition={{
-                duration: 1,
-                delay: angle / 500,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
-          ))}
-        </motion.div>
-
-        {/* Bright spotlight beam — single wide beam rotating fast */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-        >
-          <motion.div
-            className="absolute"
-            style={{
-              left: '50%',
-              top: '0%',
-              width: 36,
-              height: 50,
-              transform: 'translateX(-50%)',
-              transformOrigin: '50% 100%',
-              background: 'linear-gradient(to top, transparent 0%, rgba(255,255,224,0.35) 40%, transparent 100%)',
-              borderRadius: '50%',
-            }}
-            animate={{
-              opacity: [0.15, 0.4, 0.15],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-        </motion.div>
+              key={`layer-${layer.id}`}
+              className="absolute inset-0"
+              animate={{ rotate: 360 * layer.direction }}
+              transition={{ duration: layer.duration, repeat: Infinity, ease: 'linear' }}
+            >
+              {angles.map((angle) => (
+                <motion.div
+                  key={`${layer.id}-${angle}`}
+                  className="absolute"
+                  style={{
+                    left: '50%',
+                    top: layer.topOffset,
+                    width: layer.width,
+                    height: layer.height,
+                    transform: `translateX(-50%) rotate(${angle}deg)`,
+                    transformOrigin: layer.originDist > 0
+                      ? `50% calc(100% + ${layer.originDist}px)`
+                      : '50% 100%',
+                    background: layer.shape === 'ellipse'
+                      ? `radial-gradient(ellipse at 50% 0%, ${layer.color} 0%, transparent 70%)`
+                      : `linear-gradient(to top, transparent, ${layer.color}, transparent)`,
+                    borderRadius: layer.shape === 'ellipse' ? '50%' : undefined,
+                  }}
+                  animate={{
+                    opacity: [layer.opacityRange[0], layer.opacityRange[1], layer.opacityRange[0]],
+                    ...(layer.scaleRange
+                      ? { scaleY: [layer.scaleRange[0], layer.scaleRange[1], layer.scaleRange[0]] }
+                      : {}),
+                  }}
+                  transition={{
+                    duration: layer.pulseDuration,
+                    delay: (angle / 360) * layer.pulseDuration,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+            </motion.div>
+          )
+        })}
       </div>
 
       {/* Star counter and stats label in center */}
