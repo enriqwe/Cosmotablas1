@@ -83,14 +83,17 @@ function App() {
   const [showGalaxyCelebration, setShowGalaxyCelebration] = useState(false)
 
   const handleStartGame = useCallback(() => {
-    // Sync game progress synchronously before screen transition.
-    // Do NOT use a useEffect for this — the async timing interferes
-    // with AnimatePresence exit/enter and causes blank screens.
+    // Sync game progress before reload.
     const userId = useUserStore.getState().currentUserId
     if (userId) {
       setCurrentUser(userId)
     }
-    setCurrentScreen('map')
+    // Reload the page so the app starts directly on the map screen.
+    // The AnimatePresence start→map transition causes blank screens
+    // because the SolarMap container isn't properly laid out during
+    // the enter phase. Since both stores persist to localStorage,
+    // after reload the app initializes with currentScreen='map'.
+    window.location.reload()
   }, [setCurrentUser])
 
   const handleLogout = useCallback(() => {
