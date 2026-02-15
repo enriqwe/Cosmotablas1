@@ -64,24 +64,24 @@ export function CelebrationScreen({
   onContinue,
   onRetry,
 }: CelebrationScreenProps) {
-  const [showParticles, setShowParticles] = useState(stars > 0)
+  const [showParticles, setShowParticles] = useState(stars > 0 || isChallengeMode)
   const [showRecordBurst, setShowRecordBurst] = useState(false)
   const { playSound } = useSoundContext()
   const currentUserId = useUserStore((state) => state.currentUserId)
   const getTopRecordsByPoints = useRecordsStore((state) => state.getTopRecordsByPoints)
 
-  const leaderboard = tableNumber > 0 ? getTopRecordsByPoints(tableNumber, 10) : []
+  const leaderboard = getTopRecordsByPoints(tableNumber, 10)
 
   // Play celebration sound on mount
   useEffect(() => {
-    if (stars > 0) {
+    if (stars > 0 || isChallengeMode) {
       playSound('celebration')
       // Play unlock sound if new planet unlocked
       if (isFirstCompletion) {
         setTimeout(() => playSound('unlock'), 500)
       }
     }
-  }, [stars, isFirstCompletion, playSound])
+  }, [stars, isFirstCompletion, isChallengeMode, playSound])
 
   // Trigger record burst after initial celebration
   useEffect(() => {
@@ -199,8 +199,8 @@ export function CelebrationScreen({
           </p>
         </div>
 
-        {/* Points (not in challenge mode) */}
-        {!isChallengeMode && recordResult && (
+        {/* Points */}
+        {recordResult && (
           <div className="bg-space-navy rounded-lg p-3 text-center col-span-2 border border-gold/30">
             <p className="text-white/60 text-xs mb-1">Puntuación</p>
             <p className="text-gold text-2xl font-bold">
@@ -213,8 +213,8 @@ export function CelebrationScreen({
         )}
       </motion.div>
 
-      {/* Record Position (not in challenge mode) */}
-      {!isChallengeMode && recordResult && (
+      {/* Record Position */}
+      {recordResult && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -230,7 +230,9 @@ export function CelebrationScreen({
                 ★ ¡RÉCORD ABSOLUTO! ★
               </p>
               <p className="text-yellow-300/80 text-sm mt-1">
-                ¡Eres el más rápido en la tabla del {tableNumber}!
+                {isChallengeMode
+                  ? '¡Eres el más rápido en el Desafío!'
+                  : `¡Eres el más rápido en la tabla del ${tableNumber}!`}
               </p>
             </motion.div>
           ) : (
@@ -246,8 +248,8 @@ export function CelebrationScreen({
         </motion.div>
       )}
 
-      {/* Mini Leaderboard (not in challenge mode) */}
-      {!isChallengeMode && recordResult && leaderboard.length > 0 && (
+      {/* Mini Leaderboard */}
+      {recordResult && leaderboard.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -255,7 +257,7 @@ export function CelebrationScreen({
           className="w-full max-w-xs mb-4"
         >
           <p className="text-white/50 text-xs text-center mb-2">
-            Ranking — Tabla del {tableNumber}
+            {isChallengeMode ? 'Ranking — Desafío' : `Ranking — Tabla del ${tableNumber}`}
           </p>
           <div className="bg-space-navy rounded-xl p-3 space-y-1.5">
             {leaderboard.slice(0, 5).map((record: TableRecord, index: number) => {

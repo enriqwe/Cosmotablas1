@@ -5,6 +5,7 @@ import { useRecordsStore, type TableRecord } from '@/store/recordsStore'
 import { useMistakesStore, type MistakeEntry } from '@/store/mistakesStore'
 import { useUserStore } from '@/store/userStore'
 import { fetchGlobalLeaderboard, fetchTableLeaderboard, fetchGlobalMistakes } from '@/services/leaderboardApi'
+import { CHALLENGE_TABLE } from '@/constants/config'
 
 interface StatisticsPanelProps {
   isOpen: boolean
@@ -153,7 +154,7 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
     setExpandedTable(newExpanded)
 
     // Fetch detailed global records when expanding in global mode
-    if (newExpanded && dataSource === 'global' && !globalAllRecords[newExpanded]) {
+    if (newExpanded !== null && dataSource === 'global' && !globalAllRecords[newExpanded]) {
       fetchTableLeaderboard(newExpanded, 'all')
         .then((records) => {
           setGlobalAllRecords((prev) => ({ ...prev, [newExpanded]: records }))
@@ -181,7 +182,8 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
     getBestFn: (table: number) => TableRecord[],
     getAllFn: (table: number) => TableRecord[],
   ) => {
-    const hasAnyRecords = [2, 3, 4, 5, 6, 7, 8, 9].some((t) => getBestFn(t).length > 0)
+    const TABLE_LIST = [CHALLENGE_TABLE, 2, 3, 4, 5, 6, 7, 8, 9]
+    const hasAnyRecords = TABLE_LIST.some((t) => getBestFn(t).length > 0)
 
     if (!hasAnyRecords) {
       return (
@@ -195,10 +197,12 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
 
     return (
       <div className="space-y-4">
-        {[2, 3, 4, 5, 6, 7, 8, 9].map((table) => {
+        {TABLE_LIST.map((table) => {
           const isExpanded = expandedTable === table
           const records = isExpanded ? getAllFn(table) : getBestFn(table)
           if (records.length === 0) return null
+
+          const isChallenge = table === CHALLENGE_TABLE
 
           return (
             <div key={table} className="bg-space-dark rounded-xl p-3">
@@ -207,10 +211,18 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
                 className="flex items-center gap-2 mb-2 w-full text-left"
                 onClick={() => handleTableExpand(table)}
               >
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ${PLANET_COLORS[table - 1]}`}>
-                  {table}
-                </div>
-                <span className="text-white font-medium text-sm flex-1">Tabla del {table}</span>
+                {isChallenge ? (
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br from-warning to-orange-600">
+                    ⚡
+                  </div>
+                ) : (
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ${PLANET_COLORS[table - 1]}`}>
+                    {table}
+                  </div>
+                )}
+                <span className="text-white font-medium text-sm flex-1">
+                  {isChallenge ? 'Desafío' : `Tabla del ${table}`}
+                </span>
                 <span className="text-white/40 text-xs">
                   {isExpanded ? '▲ Mejores tiempos' : '▼ Ver detalle'}
                 </span>
@@ -220,7 +232,9 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
               <div className="flex items-center gap-1 text-[10px] text-white/40 mb-1 pl-7 pr-1">
                 <span className="w-5 text-center shrink-0">#</span>
                 <span className="flex-1">Jugador</span>
-                <span className="w-[100px] text-right">Tiempo+Penal=Total</span>
+                <span className="w-10 text-right">Tiempo</span>
+                <span className="w-9 text-right">Penal</span>
+                <span className="w-10 text-right">Total</span>
                 <span className="w-[52px] text-right">Fecha</span>
               </div>
 
@@ -238,8 +252,14 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
                     >
                       <span className="w-5 text-center shrink-0">{getMedal(index + 1)}</span>
                       <span className="flex-1 text-white/80 truncate font-medium">{record.userName}</span>
-                      <span className="w-[100px] text-right text-white/50 font-mono text-[10px]">
-                        {timeSeconds}s{penaltySeconds > 0 ? `+${penaltySeconds}s` : ''}={record.points}s
+                      <span className="w-10 text-right text-white/50 font-mono text-[10px]">
+                        {timeSeconds}s
+                      </span>
+                      <span className="w-9 text-right text-warning/70 font-mono text-[10px]">
+                        {penaltySeconds > 0 ? `+${penaltySeconds}s` : '-'}
+                      </span>
+                      <span className="w-10 text-right text-white font-mono text-[10px] font-semibold">
+                        {record.points}s
                       </span>
                       <span className="w-[52px] text-right text-white/35 text-[10px]">
                         {formatDate(record.date)}

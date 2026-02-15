@@ -30,11 +30,19 @@ export function generateQuestions(table: number, count: number = 8): Question[] 
 }
 
 export function generateChallengeQuestions(mistakes: MistakeEntry[], count: number = 8): Question[] {
+  if (mistakes.length === 0) return []
+
   // Take top mistakes sorted by count (already sorted from store/API)
-  const top = mistakes.slice(0, count)
+  const pool = mistakes.slice(0, count)
+
+  // Fill up to `count` by repeating cyclically if not enough unique mistakes
+  const filled: MistakeEntry[] = []
+  for (let i = 0; i < count; i++) {
+    filled.push(pool[i % pool.length])
+  }
 
   // Shuffle so the order isn't predictable
-  const shuffled = shuffleArray(top)
+  const shuffled = shuffleArray(filled)
 
   return shuffled.map((m, index) => ({
     id: `challenge-${m.table}-${m.multiplier}-${index}`,

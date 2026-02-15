@@ -12,6 +12,7 @@ import { GalaxyCelebration } from '@/components/ui/GalaxyCelebration'
 import { StartScreen } from '@/features/start/StartScreen'
 import { submitGlobalRecord, submitMistakes, fetchGlobalMistakes } from '@/services/leaderboardApi'
 import { calculatePoints } from '@/store/recordsStore'
+import { CHALLENGE_TABLE } from '@/constants/config'
 import { useMistakesStore } from '@/store/mistakesStore'
 import { generateChallengeQuestions } from '@/utils/questionGenerator'
 
@@ -127,11 +128,32 @@ function App() {
     setLastChallengeMode(wasChallenge)
 
     if (wasChallenge) {
-      // Challenge mode: practice only — no planet progression, no records
-      setLastRecordResult(null)
-      setLastTableNumber(0)
+      // Challenge mode: save records under CHALLENGE_TABLE, no planet progression
+      if (currentUserId && currentUser) {
+        const recordResult = addRecord(
+          currentUserId,
+          currentUser.name,
+          CHALLENGE_TABLE,
+          result.totalTimeMs,
+          result.wrongCount
+        )
+        setLastRecordResult(recordResult)
+        setLastTableNumber(CHALLENGE_TABLE)
 
-      // Still save mistakes locally + globally
+        submitGlobalRecord({
+          userId: currentUserId,
+          userName: currentUser.name,
+          tableNumber: CHALLENGE_TABLE,
+          timeMs: result.totalTimeMs,
+          errors: result.wrongCount,
+          points: calculatePoints(result.totalTimeMs, result.wrongCount),
+        })
+      } else {
+        setLastRecordResult(null)
+        setLastTableNumber(CHALLENGE_TABLE)
+      }
+
+      // Save mistakes locally + globally
       if (currentUserId && result.mistakes.length > 0) {
         useMistakesStore.getState().addMistakes(currentUserId, result.mistakes)
         submitMistakes(result.mistakes)
