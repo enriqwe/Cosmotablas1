@@ -12,6 +12,7 @@ interface CelebrationScreenProps {
   isFirstCompletion: boolean
   recordResult: RecordResult | null
   tableNumber: number
+  isChallengeMode?: boolean
   onContinue: () => void
   onRetry: () => void
 }
@@ -59,6 +60,7 @@ export function CelebrationScreen({
   isFirstCompletion,
   recordResult,
   tableNumber,
+  isChallengeMode = false,
   onContinue,
   onRetry,
 }: CelebrationScreenProps) {
@@ -143,17 +145,21 @@ export function CelebrationScreen({
         transition={{ duration: 0.5 }}
         className="text-3xl font-bold text-white mb-4 text-center"
       >
-        {isFirstCompletion ? '¡Planeta Conquistado!' : '¡Misión Completada!'}
+        {isChallengeMode
+          ? '¡Desafío Completado!'
+          : isFirstCompletion ? '¡Planeta Conquistado!' : '¡Misión Completada!'}
       </motion.h1>
 
-      {/* Animated Stars */}
-      <motion.div
-        className="flex gap-4 mb-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        {renderStars()}
-      </motion.div>
+      {/* Animated Stars (hidden in challenge mode) */}
+      {!isChallengeMode && (
+        <motion.div
+          className="flex gap-4 mb-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {renderStars()}
+        </motion.div>
+      )}
 
       {/* Message */}
       <motion.p
@@ -162,7 +168,9 @@ export function CelebrationScreen({
         transition={{ delay: 0.8 }}
         className="text-xl text-space-blue mb-4"
       >
-        {starMessages[stars]}
+        {isChallengeMode
+          ? `${sessionResult.correctCount} de ${sessionResult.correctCount + sessionResult.wrongCount} correctas`
+          : starMessages[stars]}
       </motion.p>
 
       {/* Stats Grid */}
@@ -191,8 +199,8 @@ export function CelebrationScreen({
           </p>
         </div>
 
-        {/* Points */}
-        {recordResult && (
+        {/* Points (not in challenge mode) */}
+        {!isChallengeMode && recordResult && (
           <div className="bg-space-navy rounded-lg p-3 text-center col-span-2 border border-gold/30">
             <p className="text-white/60 text-xs mb-1">Puntuación</p>
             <p className="text-gold text-2xl font-bold">
@@ -205,8 +213,8 @@ export function CelebrationScreen({
         )}
       </motion.div>
 
-      {/* Record Position */}
-      {recordResult && (
+      {/* Record Position (not in challenge mode) */}
+      {!isChallengeMode && recordResult && (
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -238,8 +246,8 @@ export function CelebrationScreen({
         </motion.div>
       )}
 
-      {/* Mini Leaderboard */}
-      {recordResult && leaderboard.length > 0 && (
+      {/* Mini Leaderboard (not in challenge mode) */}
+      {!isChallengeMode && recordResult && leaderboard.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -299,14 +307,16 @@ export function CelebrationScreen({
         transition={{ delay: 1.6 }}
         className="flex gap-4"
       >
-        {/* Retry button */}
-        <motion.button
-          onClick={onRetry}
-          whileTap={{ scale: 0.95 }}
-          className="px-6 py-3 bg-space-navy text-white rounded-full text-lg font-semibold border-2 border-space-purple/50 hover:bg-space-purple/20 transition-colors"
-        >
-          Reintentar
-        </motion.button>
+        {/* Retry button (hidden in challenge mode) */}
+        {!isChallengeMode && (
+          <motion.button
+            onClick={onRetry}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-3 bg-space-navy text-white rounded-full text-lg font-semibold border-2 border-space-purple/50 hover:bg-space-purple/20 transition-colors"
+          >
+            Reintentar
+          </motion.button>
+        )}
 
         {/* Continue button */}
         <motion.button
@@ -318,8 +328,8 @@ export function CelebrationScreen({
         </motion.button>
       </motion.div>
 
-      {/* New planet unlocked message */}
-      {isFirstCompletion && stars > 0 && (
+      {/* New planet unlocked message (not in challenge mode) */}
+      {!isChallengeMode && isFirstCompletion && stars > 0 && (
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

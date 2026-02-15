@@ -1,4 +1,5 @@
 import type { Question } from '@/types/game.types'
+import type { MistakeEntry } from '@/store/mistakesStore'
 
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array]
@@ -25,5 +26,20 @@ export function generateQuestions(table: number, count: number = 8): Question[] 
     table,
     multiplier,
     correctAnswer: table * multiplier,
+  }))
+}
+
+export function generateChallengeQuestions(mistakes: MistakeEntry[], count: number = 8): Question[] {
+  // Take top mistakes sorted by count (already sorted from store/API)
+  const top = mistakes.slice(0, count)
+
+  // Shuffle so the order isn't predictable
+  const shuffled = shuffleArray(top)
+
+  return shuffled.map((m, index) => ({
+    id: `challenge-${m.table}-${m.multiplier}-${index}`,
+    table: m.table,
+    multiplier: m.multiplier,
+    correctAnswer: m.table * m.multiplier,
   }))
 }

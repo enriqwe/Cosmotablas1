@@ -50,7 +50,12 @@ export function SolarMap({ onPlanetClick, onSunClick, newlyUnlockedPlanetId }: S
 
   // Transform state: pan (in screen pixels) and zoom
   const [zoom, setZoom] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
+  // Default pan: approximate center on the sun so the screen is never blank,
+  // even before the exact centering runs.
+  const [pan, setPan] = useState(() => ({
+    x: Math.round(window.innerWidth / 2 - CENTER),
+    y: Math.round(window.innerHeight / 2 - CENTER),
+  }))
 
   // Drag refs
   const isDragging = useRef(false)
@@ -66,6 +71,8 @@ export function SolarMap({ onPlanetClick, onSunClick, newlyUnlockedPlanetId }: S
   // Initial centering on mount
   // useLayoutEffect fires synchronously after DOM commit, before paint.
   // Read planets directly from the store to avoid stale closures.
+  // Retry aggressively because AnimatePresence may keep container at 0 height
+  // for several hundred ms during exit/enter transitions.
   useLayoutEffect(() => {
     const doCenter = () => {
       const container = containerRef.current
@@ -88,11 +95,17 @@ export function SolarMap({ onPlanetClick, onSunClick, newlyUnlockedPlanetId }: S
       return true
     }
 
-    if (!doCenter()) {
-      // Fallback: retry after AnimatePresence transition settles
-      const timer = setTimeout(doCenter, 400)
-      return () => clearTimeout(timer)
-    }
+    if (doCenter()) return
+
+    // Retry every 50ms for up to 2s (covers AnimatePresence transitions)
+    let attempts = 0
+    const interval = setInterval(() => {
+      attempts++
+      if (doCenter() || attempts >= 40) {
+        clearInterval(interval)
+      }
+    }, 50)
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

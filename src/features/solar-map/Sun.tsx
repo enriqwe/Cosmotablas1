@@ -18,6 +18,22 @@ export function Sun({ totalStars, maxStars, onClick }: SunProps) {
       onClick={onClick}
       whileTap={{ scale: 0.95 }}
     >
+      {/* Outermost soft halo */}
+      <motion.div
+        className="absolute w-56 h-56 rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle, rgba(255, 220, 80, 0.1) 0%, transparent 65%)',
+        }}
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.3, 0.55, 0.3],
+        }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
       {/* Outer glow layers */}
       <motion.div
         className="absolute w-48 h-48 rounded-full pointer-events-none"
@@ -49,6 +65,22 @@ export function Sun({ totalStars, maxStars, onClick }: SunProps) {
           ease: 'easeInOut',
         }}
       />
+      {/* Bright core pulse */}
+      <motion.div
+        className="absolute w-24 h-24 rounded-full pointer-events-none"
+        style={{
+          background: 'radial-gradient(circle, rgba(255, 255, 220, 0.4) 0%, transparent 60%)',
+        }}
+        animate={{
+          scale: [0.95, 1.08, 0.95],
+          opacity: [0.5, 0.85, 0.5],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
 
       {/* Sun body */}
       <div
@@ -70,7 +102,40 @@ export function Sun({ totalStars, maxStars, onClick }: SunProps) {
           }}
         />
 
-        {/* Corona flares */}
+        {/* Inner sweeping light — broad warm wash (slow) */}
+        <motion.div
+          className="absolute inset-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+        >
+          {[0, 90, 180, 270].map((angle) => (
+            <motion.div
+              key={`sweep-${angle}`}
+              className="absolute"
+              style={{
+                left: '50%',
+                top: '5%',
+                width: 28,
+                height: 40,
+                transform: `translateX(-50%) rotate(${angle}deg)`,
+                transformOrigin: '50% calc(100% + 20px)',
+                background: 'radial-gradient(ellipse at 50% 0%, rgba(255,245,157,0.5) 0%, transparent 70%)',
+                borderRadius: '50%',
+              }}
+              animate={{
+                opacity: [0.2, 0.55, 0.2],
+              }}
+              transition={{
+                duration: 3,
+                delay: angle / 400,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+          ))}
+        </motion.div>
+
+        {/* Corona flares — original thin rays (medium speed) */}
         <motion.div
           className="absolute inset-0"
           animate={{ rotate: 360 }}
@@ -99,6 +164,68 @@ export function Sun({ totalStars, maxStars, onClick }: SunProps) {
               }}
             />
           ))}
+        </motion.div>
+
+        {/* Fast narrow rays — counter-rotating for shimmer */}
+        <motion.div
+          className="absolute inset-0"
+          animate={{ rotate: -360 }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+        >
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
+            <motion.div
+              key={`fast-${angle}`}
+              className="absolute"
+              style={{
+                left: '50%',
+                top: '-4px',
+                width: 2,
+                height: 14,
+                transform: `translateX(-50%) rotate(${angle}deg)`,
+                transformOrigin: '50% calc(100% + 48px)',
+                background: 'linear-gradient(to top, transparent, rgba(255,235,59,0.6), transparent)',
+              }}
+              animate={{
+                opacity: [0.15, 0.6, 0.15],
+                scaleY: [0.6, 1.3, 0.6],
+              }}
+              transition={{
+                duration: 1,
+                delay: angle / 500,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+          ))}
+        </motion.div>
+
+        {/* Bright spotlight beam — single wide beam rotating fast */}
+        <motion.div
+          className="absolute inset-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+        >
+          <motion.div
+            className="absolute"
+            style={{
+              left: '50%',
+              top: '0%',
+              width: 36,
+              height: 50,
+              transform: 'translateX(-50%)',
+              transformOrigin: '50% 100%',
+              background: 'linear-gradient(to top, transparent 0%, rgba(255,255,224,0.35) 40%, transparent 100%)',
+              borderRadius: '50%',
+            }}
+            animate={{
+              opacity: [0.15, 0.4, 0.15],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          />
         </motion.div>
       </div>
 

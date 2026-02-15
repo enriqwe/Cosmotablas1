@@ -6,6 +6,7 @@ const QUESTIONS_PER_SESSION = 8
 
 interface SessionStore {
   isPlaying: boolean
+  isChallengeMode: boolean
   currentPlanetId: number | null
   questions: Question[]
   currentQuestionIndex: number
@@ -15,6 +16,7 @@ interface SessionStore {
   questionStartTime: number | null
 
   startSession: (planetId: number, table: number) => void
+  startChallengeSession: (questions: Question[]) => void
   submitAnswer: (answer: number) => boolean
   nextQuestion: () => void
   endSession: () => SessionResult
@@ -26,6 +28,7 @@ interface SessionStore {
 
 export const useSessionStore = create<SessionStore>((set, get) => ({
   isPlaying: false,
+  isChallengeMode: false,
   currentPlanetId: null,
   questions: [],
   currentQuestionIndex: 0,
@@ -47,7 +50,31 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     set({
       isPlaying: true,
+      isChallengeMode: false,
       currentPlanetId: planetId,
+      questions,
+      currentQuestionIndex: 0,
+      sessionAnswers,
+      currentAnswer: '',
+      sessionStartTime: now,
+      questionStartTime: now,
+    })
+  },
+
+  startChallengeSession: (questions: Question[]) => {
+    const now = Date.now()
+    const sessionAnswers: SessionAnswer[] = questions.map((q) => ({
+      questionId: q.id,
+      userAnswer: null,
+      attempts: 0,
+      isCorrect: false,
+      responseTimeMs: null,
+    }))
+
+    set({
+      isPlaying: true,
+      isChallengeMode: true,
+      currentPlanetId: null,
       questions,
       currentQuestionIndex: 0,
       sessionAnswers,
@@ -124,6 +151,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     set({
       isPlaying: false,
+      isChallengeMode: false,
       currentPlanetId: null,
       questions: [],
       currentQuestionIndex: 0,
@@ -146,6 +174,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   exitSession: () => {
     set({
       isPlaying: false,
+      isChallengeMode: false,
       currentPlanetId: null,
       questions: [],
       currentQuestionIndex: 0,

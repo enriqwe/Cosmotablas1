@@ -10,9 +10,10 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { StatisticsPanel } from '@/components/ui/StatisticsPanel'
 import { GalaxyCelebration } from '@/components/ui/GalaxyCelebration'
 import { StartScreen } from '@/features/start/StartScreen'
-import { submitGlobalRecord, submitMistakes } from '@/services/leaderboardApi'
+import { submitGlobalRecord, submitMistakes, fetchGlobalMistakes } from '@/services/leaderboardApi'
 import { calculatePoints } from '@/store/recordsStore'
 import { useMistakesStore } from '@/store/mistakesStore'
+import { generateChallengeQuestions } from '@/utils/questionGenerator'
 
 // Lazy load non-critical components
 const CelebrationScreen = lazy(() =>
@@ -71,6 +72,7 @@ function App() {
   const [lastTableNumber, setLastTableNumber] = useState<number>(0)
 
   const startSession = useSessionStore((state) => state.startSession)
+  const startChallengeSession = useSessionStore((state) => state.startChallengeSession)
   const planets = useGameStore((state) => state.planets)
   const updatePlanetStars = useGameStore((state) => state.updatePlanetStars)
   const resetProgress = useGameStore((state) => state.resetProgress)
@@ -116,20 +118,32 @@ function App() {
   }, [planets, startSession])
 
   const handleSessionEnd = useCallback((result: SessionResult) => {
+    // Check if this was a challenge session before the store resets it
+    const wasChallenge = useSessionStore.getState().isChallengeMode
+
     const stars = calculateStars(result.accuracy)
     setLastSessionResult(result)
     setLastStars(stars)
+    setLastChallengeMode(wasChallenge)
 
-    // Update game store with stars
-    if (activePlanetId !== null) {
+    if (wasChallenge) {
+      // Challenge mode: practice only — no planet progression, no records
+      setLastRecordResult(null)
+      setLastTableNumber(0)
+
+      // Still save mistakes locally + globally
+      if (currentUserId && result.mistakes.length > 0) {
+        useMistakesStore.getState().addMistakes(currentUserId, result.mistakes)
+        submitMistakes(result.mistakes)
+      }
+    } else if (activePlanetId !== null) {
+      // Normal mode: update planet stars + records
       updatePlanetStars(activePlanetId, stars, result.accuracy)
 
-      // Track newly unlocked planet for animation (next planet if stars > 0 and first completion)
       if (stars > 0 && isFirstCompletion) {
         setNewlyUnlockedPlanetId(activePlanetId + 1)
       }
 
-      // Add record if user is logged in
       const planet = planets.find((p) => p.id === activePlanetId)
       if (currentUserId && currentUser && planet) {
         const recordResult = addRecord(
@@ -142,7 +156,6 @@ function App() {
         setLastRecordResult(recordResult)
         setLastTableNumber(planet.table)
 
-        // Fire-and-forget: sync to global leaderboard
         submitGlobalRecord({
           userId: currentUserId,
           userName: currentUser.name,
@@ -156,14 +169,12 @@ function App() {
         setLastTableNumber(0)
       }
 
-      // Save mistakes locally + fire-and-forget to global
       if (currentUserId && result.mistakes.length > 0) {
         useMistakesStore.getState().addMistakes(currentUserId, result.mistakes)
         submitMistakes(result.mistakes)
       }
     }
 
-    // Show celebration screen
     setCurrentScreen('celebration')
   }, [activePlanetId, updatePlanetStars, isFirstCompletion, planets, currentUserId, currentUser, addRecord])
 
@@ -207,6 +218,39 @@ function App() {
     setTimeout(() => setToastMessage(null), 2500)
   }, [resetProgress])
 
+  const [lastChallengeMode, setLastChallengeMode] = useState(false)
+
+  const handleStartChallenge = useCallback(async (source: 'local' | 'global') => {
+    let mistakes: { table: number; multiplier: number; count: number }[]
+
+    if (source === 'local') {
+      mistakes = currentUserId
+        ? useMistakesStore.getState().getUserTopMistakes(currentUserId, 15)
+        : []
+    } else {
+      try {
+        mistakes = await fetchGlobalMistakes()
+      } catch {
+        setToastMessage('Error al cargar errores globales')
+        setTimeout(() => setToastMessage(null), 2500)
+        return
+      }
+    }
+
+    if (mistakes.length < 3) {
+      setToastMessage('No hay suficientes errores para el desafío')
+      setTimeout(() => setToastMessage(null), 2500)
+      return
+    }
+
+    const questions = generateChallengeQuestions(mistakes)
+    startChallengeSession(questions)
+    setShowStats(false)
+    setActivePlanetId(null)
+    setIsFirstCompletion(false)
+    setCurrentScreen('game')
+  }, [currentUserId, startChallengeSession])
+
   return (
     <>
       {/* Animated starfield background */}
@@ -230,6 +274,7 @@ function App() {
       <StatisticsPanel
         isOpen={showStats}
         onClose={() => setShowStats(false)}
+        onStartChallenge={handleStartChallenge}
       />
 
       {/* Galaxy completion celebration */}
@@ -278,6 +323,7 @@ function App() {
                 isFirstCompletion={isFirstCompletion}
                 recordResult={lastRecordResult}
                 tableNumber={lastTableNumber}
+                isChallengeMode={lastChallengeMode}
                 onContinue={handleCelebrationContinue}
                 onRetry={handleRetry}
               />

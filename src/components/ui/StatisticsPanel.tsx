@@ -9,6 +9,7 @@ import { fetchGlobalLeaderboard, fetchTableLeaderboard, fetchGlobalMistakes } fr
 interface StatisticsPanelProps {
   isOpen: boolean
   onClose: () => void
+  onStartChallenge?: (source: 'local' | 'global') => void
 }
 
 const PLANET_NAMES: Record<number, string> = {
@@ -33,6 +34,18 @@ const PLANET_COLORS: Record<number, string> = {
   8: 'bg-pink-500',
 }
 
+// Hex colors for SVG donut chart (matching PLANET_COLORS)
+const PLANET_HEX: Record<number, string> = {
+  2: '#ef4444', // red-500
+  3: '#f97316', // orange-500
+  4: '#eab308', // yellow-500
+  5: '#22c55e', // green-500
+  6: '#06b6d4', // cyan-500
+  7: '#3b82f6', // blue-500
+  8: '#8b5cf6', // violet-500
+  9: '#ec4899', // pink-500
+}
+
 type TabType = 'progress' | 'records' | 'mejora'
 type DataSource = 'local' | 'global'
 
@@ -45,6 +58,30 @@ function formatDate(timestamp: number): string {
   return `${day}/${month} ${hours}:${mins}`
 }
 
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = (angleDeg * Math.PI) / 180
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+}
+
+function describeArc(cx: number, cy: number, outerR: number, innerR: number, startAngle: number, endAngle: number): string {
+  const sweep = endAngle - startAngle
+  // Clamp near-full arcs to avoid rendering glitches
+  const clampedEnd = sweep >= 359.99 ? startAngle + 359.99 : endAngle
+  const largeArc = sweep > 180 ? 1 : 0
+  const outerStart = polarToCartesian(cx, cy, outerR, startAngle)
+  const outerEnd = polarToCartesian(cx, cy, outerR, clampedEnd)
+  const innerStart = polarToCartesian(cx, cy, innerR, clampedEnd)
+  const innerEnd = polarToCartesian(cx, cy, innerR, startAngle)
+
+  return [
+    `M ${outerStart.x} ${outerStart.y}`,
+    `A ${outerR} ${outerR} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+    `L ${innerStart.x} ${innerStart.y}`,
+    `A ${innerR} ${innerR} 0 ${largeArc} 0 ${innerEnd.x} ${innerEnd.y}`,
+    'Z',
+  ].join(' ')
+}
+
 function getMedal(position: number): string {
   switch (position) {
     case 1: return '🥇'
@@ -54,7 +91,7 @@ function getMedal(position: number): string {
   }
 }
 
-export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
+export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: StatisticsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('records')
   const [expandedTable, setExpandedTable] = useState<number | null>(null)
   const [dataSource, setDataSource] = useState<DataSource>('local')
@@ -313,6 +350,83 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
     )
   }
 
+  const renderDonutChart = (mistakes: MistakeEntry[]) => {
+    if (mistakes.length === 0) return null
+
+    // Group by table, sum counts
+    const byTable: Record<number, number> = {}
+    for (const m of mistakes) {
+      byTable[m.table] = (byTable[m.table] || 0) + m.count
+    }
+
+    const entries = Object.entries(byTable)
+      .map(([table, count]) => ({ table: Number(table), count }))
+      .sort((a, b) => b.count - a.count)
+
+    const total = entries.reduce((s, e) => s + e.count, 0)
+    if (total === 0) return null
+
+    // SVG donut parameters
+    const size = 140
+    const cx = size / 2
+    const cy = size / 2
+    const outerR = 60
+    const innerR = 38
+
+    // Build arc paths
+    let startAngle = -90 // start at top
+    const arcs = entries.map((entry) => {
+      const sweep = (entry.count / total) * 360
+      const endAngle = startAngle + sweep
+      const path = describeArc(cx, cy, outerR, innerR, startAngle, endAngle)
+      startAngle = endAngle
+      return { ...entry, path, percent: Math.round((entry.count / total) * 100) }
+    })
+
+    return (
+      <div className="flex flex-col items-center mb-4">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          {arcs.map((arc) => (
+            <path
+              key={arc.table}
+              d={arc.path}
+              fill={PLANET_HEX[arc.table] || '#6b7280'}
+              stroke="rgba(0,0,0,0.3)"
+              strokeWidth="1"
+            />
+          ))}
+          {/* Center label */}
+          <text x={cx} y={cy - 6} textAnchor="middle" fill="white" fontSize="18" fontWeight="bold">
+            {total}
+          </text>
+          <text x={cx} y={cy + 10} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize="9">
+            errores
+          </text>
+        </svg>
+
+        {/* Legend */}
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2">
+          {arcs.map((arc) => (
+            <div key={arc.table} className="flex items-center gap-1">
+              <span
+                className="w-2.5 h-2.5 rounded-full inline-block"
+                style={{ backgroundColor: PLANET_HEX[arc.table] || '#6b7280' }}
+              />
+              <span className="text-white/70 text-[10px]">
+                Tabla {arc.table} ({arc.percent}%)
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  const getMejoraData = (): MistakeEntry[] => {
+    if (mejoraSource === 'global') return globalMistakes
+    return currentUserId ? getUserTopMistakes(currentUserId, 15) : []
+  }
+
   const renderMejora = () => {
     if (mejoraSource === 'global') {
       if (isLoadingMistakes) {
@@ -343,12 +457,32 @@ export function StatisticsPanel({ isOpen, onClose }: StatisticsPanelProps) {
           </div>
         )
       }
-      return renderMistakesList(globalMistakes)
     }
 
-    // Local mode
-    const localMistakes = currentUserId ? getUserTopMistakes(currentUserId, 15) : []
-    return renderMistakesList(localMistakes)
+    const mistakes = getMejoraData()
+
+    return (
+      <>
+        {/* Donut chart */}
+        {renderDonutChart(mistakes)}
+
+        {/* Challenge button */}
+        {onStartChallenge && mistakes.length >= 3 && (
+          <motion.button
+            onClick={() => onStartChallenge(mejoraSource)}
+            className="w-full py-3 mb-4 rounded-xl text-sm font-bold bg-gradient-to-r from-warning to-orange-600 text-white shadow-lg shadow-warning/20"
+            whileTap={{ scale: 0.97 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            ⚡ {mejoraSource === 'local' ? 'Desafío: Mis Errores' : 'Desafío: Errores Globales'}
+          </motion.button>
+        )}
+
+        {/* Bar list */}
+        {renderMistakesList(mistakes)}
+      </>
+    )
   }
 
   const tabs: { id: TabType; label: string; icon: string }[] = [
