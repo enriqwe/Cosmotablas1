@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Prevent horizontal overflow & white flash on mobile */
+html,
+body {
+  background-color: #0a0e27;
+  overflow-x: hidden;
+}
+
 @theme {
   /* Space Theme Colors */
   --color-space-dark: #0a0e27;

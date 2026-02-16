@@ -313,6 +313,7 @@ function App() {
         {currentScreen === 'start' ? (
           <motion.div
             key="start"
+            className="relative z-10 overflow-x-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -323,9 +324,10 @@ function App() {
         ) : currentScreen === 'game' ? (
           <motion.div
             key="game"
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
+            className="relative z-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
             <GameSession
@@ -336,6 +338,7 @@ function App() {
         ) : currentScreen === 'celebration' ? (
           <motion.div
             key="celebration"
+            className="relative z-10"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -357,7 +360,7 @@ function App() {
         ) : (
           <motion.div
             key="map"
-            className="h-screen bg-space-dark text-white font-sans flex flex-col overflow-hidden"
+            className="relative z-10 h-screen bg-space-dark text-white font-sans flex flex-col overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
