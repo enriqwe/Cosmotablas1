@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/store/gameStore'
 import { useRecordsStore, type TableRecord } from '@/store/recordsStore'
@@ -107,13 +107,54 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
 
   const planets = useGameStore((state) => state.planets)
   const totalStars = useGameStore((state) => state.totalStars)
-  const { getTopRecordsByPoints, getAllTopRecordsByPoints } = useRecordsStore()
+  const { records, getTopRecordsByPoints, getAllTopRecordsByPoints } = useRecordsStore()
   const currentUserId = useUserStore((state) => state.currentUserId)
   const getUserTopMistakes = useMistakesStore((state) => state.getUserTopMistakes)
 
   const maxStars = planets.length * 5
   const completedPlanets = planets.filter((p) => p.status === 'completed').length
   const progressPercent = Math.round((completedPlanets / planets.length) * 100)
+
+  // Speed stats per table for current user
+  const speedStats = useMemo(() => {
+    if (!currentUserId) return []
+    const TABLES = [2, 3, 4, 5, 6, 7, 8, 9]
+    return TABLES.map((table) => {
+      const userRecords = (records[table] || []).filter((r) => r.userId === currentUserId)
+      if (userRecords.length === 0) return null
+      const avgTimeMs = userRecords.reduce((sum, r) => sum + r.timeMs, 0) / userRecords.length
+      const avgPoints = userRecords.reduce((sum, r) => sum + r.points, 0) / userRecords.length
+      return { table, avgTimeMs, avgPerQuestion: avgTimeMs / 8, avgPoints, count: userRecords.length }
+    }).filter(Boolean) as { table: number; avgTimeMs: number; avgPerQuestion: number; avgPoints: number; count: number }[]
+  }, [records, currentUserId])
+
+  // Evolution data: all user records across tables, sorted by date
+  const evolutionData = useMemo(() => {
+    if (!currentUserId) return []
+    const allUserRecords: { date: number; points: number; table: number }[] = []
+    for (const tableRecords of Object.values(records)) {
+      for (const r of tableRecords) {
+        if (r.userId === currentUserId) {
+          allUserRecords.push({ date: r.date, points: r.points, table: r.tableNumber })
+        }
+      }
+    }
+    return allUserRecords.sort((a, b) => a.date - b.date)
+  }, [records, currentUserId])
+
+  // Improvement % (last 7 days vs 8-21 days ago)
+  const improvement = useMemo(() => {
+    if (evolutionData.length < 2) return null
+    const now = Date.now()
+    const DAY = 86400000
+    const recent = evolutionData.filter((d) => d.date >= now - 7 * DAY)
+    const older = evolutionData.filter((d) => d.date >= now - 21 * DAY && d.date < now - 7 * DAY)
+    if (recent.length === 0 || older.length === 0) return null
+    const recentAvg = recent.reduce((s, d) => s + d.points, 0) / recent.length
+    const olderAvg = older.reduce((s, d) => s + d.points, 0) / older.length
+    const pct = ((olderAvg - recentAvg) / olderAvg) * 100
+    return { pct: Math.round(pct), recentAvg, olderAvg }
+  }, [evolutionData])
 
   // Fetch global data when switching to global view
   useEffect(() => {
@@ -702,6 +743,121 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
                           </motion.div>
                         ))}
                       </div>
+
+                      {/* Speed Stats per Table */}
+                      {speedStats.length > 0 && (
+                        <div className="mt-6">
+                          <h3 className="text-white/70 text-sm font-semibold mb-3">Velocidad media por tabla</h3>
+                          <div className="space-y-1.5">
+                            {speedStats.map((stat) => {
+                              const avgSec = Math.round(stat.avgTimeMs / 1000)
+                              const perQ = (stat.avgPerQuestion / 1000).toFixed(1)
+                              return (
+                                <div key={stat.table} className="flex items-center gap-2 bg-space-dark rounded-lg px-3 py-2">
+                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs ${PLANET_COLORS[stat.table - 1]}`}>
+                                    {stat.table}
+                                  </div>
+                                  <span className="text-white/80 text-sm flex-1">Tabla del {stat.table}</span>
+                                  <div className="text-right">
+                                    <span className="text-white font-mono text-sm">{avgSec}s</span>
+                                    <span className="text-white/40 text-[10px] ml-1">({perQ}s/preg)</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Evolution Chart */}
+                      {evolutionData.length >= 2 ? (
+                        <div className="mt-6">
+                          <h3 className="text-white/70 text-sm font-semibold mb-3">Tu evolución</h3>
+                          <div className="bg-space-dark rounded-xl p-3">
+                            <svg viewBox="0 0 300 140" className="w-full" preserveAspectRatio="xMidYMid meet">
+                              {(() => {
+                                const pad = { top: 15, right: 15, bottom: 25, left: 35 }
+                                const w = 300 - pad.left - pad.right
+                                const h = 140 - pad.top - pad.bottom
+                                const minDate = evolutionData[0].date
+                                const maxDate = evolutionData[evolutionData.length - 1].date
+                                const dateRange = maxDate - minDate || 1
+                                const allPts = evolutionData.map((d) => d.points)
+                                const minPts = Math.min(...allPts)
+                                const maxPts = Math.max(...allPts)
+                                const ptsRange = maxPts - minPts || 1
+
+                                const toX = (date: number) => pad.left + ((date - minDate) / dateRange) * w
+                                // Invert Y: lower points = higher position = better
+                                const toY = (pts: number) => pad.top + ((pts - minPts) / ptsRange) * h
+
+                                const linePoints = evolutionData.map((d) => `${toX(d.date)},${toY(d.points)}`).join(' ')
+
+                                // Y-axis labels
+                                const yLabels = [minPts, Math.round((minPts + maxPts) / 2), maxPts]
+                                // X-axis: first and last date
+                                const fmtShort = (ts: number) => {
+                                  const d = new Date(ts)
+                                  return `${d.getDate()}/${d.getMonth() + 1}`
+                                }
+
+                                return (
+                                  <>
+                                    {/* Grid lines */}
+                                    {yLabels.map((pts) => (
+                                      <line key={pts} x1={pad.left} x2={300 - pad.right} y1={toY(pts)} y2={toY(pts)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                                    ))}
+                                    {/* Y-axis labels */}
+                                    {yLabels.map((pts) => (
+                                      <text key={`label-${pts}`} x={pad.left - 4} y={toY(pts) + 3} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end">{pts}s</text>
+                                    ))}
+                                    {/* X-axis labels */}
+                                    <text x={pad.left} y={140 - 4} fill="rgba(255,255,255,0.35)" fontSize="8">{fmtShort(minDate)}</text>
+                                    <text x={300 - pad.right} y={140 - 4} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end">{fmtShort(maxDate)}</text>
+                                    {/* Trend line */}
+                                    <polyline points={linePoints} fill="none" stroke="rgba(251,191,36,0.4)" strokeWidth="1.5" />
+                                    {/* Data points */}
+                                    {evolutionData.map((d, i) => (
+                                      <circle
+                                        key={i}
+                                        cx={toX(d.date)}
+                                        cy={toY(d.points)}
+                                        r="3"
+                                        fill={PLANET_HEX[d.table] || '#fbbf24'}
+                                        stroke="rgba(0,0,0,0.3)"
+                                        strokeWidth="0.5"
+                                      />
+                                    ))}
+                                  </>
+                                )
+                              })()}
+                            </svg>
+
+                            {/* Improvement message */}
+                            {improvement && (
+                              <div className="text-center mt-2">
+                                {improvement.pct > 3 ? (
+                                  <p className="text-success text-sm font-medium">
+                                    ↑ {improvement.pct}% más rápido que hace 2 semanas
+                                  </p>
+                                ) : improvement.pct < -3 ? (
+                                  <p className="text-warning text-sm font-medium">
+                                    ↓ {Math.abs(improvement.pct)}% más lento que hace 2 semanas
+                                  </p>
+                                ) : (
+                                  <p className="text-white/50 text-sm">
+                                    Similar a hace 2 semanas
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : evolutionData.length > 0 ? (
+                        <div className="mt-6 text-center text-white/40 text-xs py-3">
+                          Juega más partidas para ver tu evolución
+                        </div>
+                      ) : null}
                     </motion.div>
                   ) : (
                     <motion.div
