@@ -1083,7 +1083,7 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
                                           key={`hit-${i}`}
                                           cx={toX(i)}
                                           cy={toY(d.points)}
-                                          r="8"
+                                          r="12"
                                           fill="transparent"
                                           className="cursor-pointer"
                                           onClick={() => setDrillDownTable(d.table)}
@@ -1095,10 +1095,10 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
                                           key={i}
                                           cx={toX(i)}
                                           cy={toY(d.points)}
-                                          r="4"
+                                          r="6"
                                           fill={PLANET_HEX[d.table] || '#fbbf24'}
-                                          stroke="rgba(0,0,0,0.3)"
-                                          strokeWidth="0.5"
+                                          stroke="rgba(0,0,0,0.4)"
+                                          strokeWidth="1"
                                           className="pointer-events-none"
                                         />
                                       ))}
