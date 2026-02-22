@@ -70,17 +70,35 @@ export function GalaxyCelebration({ onDismiss }: GalaxyCelebrationProps) {
 
       {/* Main content */}
       <motion.div className="text-center z-10 px-6">
-        {/* Rocket */}
+        {/* Darth Vader silhouette */}
         <motion.div
-          className="text-7xl mb-6"
-          initial={{ scale: 0, rotate: -30 }}
-          animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
+          className="mb-6 flex justify-center"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{
             scale: { type: 'spring', stiffness: 200, damping: 15 },
-            rotate: { delay: 0.5, duration: 2, repeat: Infinity },
           }}
         >
-          🚀
+          <motion.svg
+            width="100"
+            height="100"
+            viewBox="0 0 200 200"
+            className="drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]"
+            animate={{ filter: ['drop-shadow(0 0 10px rgba(251,191,36,0.3))', 'drop-shadow(0 0 25px rgba(251,191,36,0.6))', 'drop-shadow(0 0 10px rgba(251,191,36,0.3))'] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <path
+              d="M100 10 C55 10 25 50 25 90 C25 105 30 118 38 128 L38 150 C38 165 50 178 68 182 L68 190 L132 190 L132 182 C150 178 162 165 162 150 L162 128 C170 118 175 105 175 90 C175 50 145 10 100 10 Z
+                 M60 80 C60 80 70 70 80 75 L80 90 L60 95 Z
+                 M140 80 C140 80 130 70 120 75 L120 90 L140 95 Z
+                 M80 110 L120 110 L115 118 L85 118 Z
+                 M78 125 L122 125 L120 130 L80 130 Z
+                 M82 135 L118 135 L116 140 L84 140 Z
+                 M86 145 L114 145 L112 150 L88 150 Z"
+              fill="rgba(255,255,255,0.9)"
+              fillRule="evenodd"
+            />
+          </motion.svg>
         </motion.div>
 
         {/* Title */}
