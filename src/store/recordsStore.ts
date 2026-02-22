@@ -10,6 +10,7 @@ export interface TableRecord {
   errors: number
   points: number // timeMs / 1000 + errors * 5
   date: number
+  challengeSource?: 'local' | 'global'
 }
 
 export interface RecordResult {
@@ -24,7 +25,7 @@ interface RecordsStore {
   // All records indexed by table number (stores ALL attempts)
   records: Record<number, TableRecord[]>
   // Add a new record
-  addRecord: (userId: string, userName: string, tableNumber: number, timeMs: number, errors: number) => RecordResult
+  addRecord: (userId: string, userName: string, tableNumber: number, timeMs: number, errors: number, challengeSource?: 'local' | 'global') => RecordResult
   // Get user's position in best-per-player ranking (1-indexed, 0 if not found)
   getUserPosition: (tableNumber: number, userId: string) => number
   // Get best record per player, sorted by points
@@ -44,7 +45,7 @@ export const useRecordsStore = create<RecordsStore>()(
     (set, get) => ({
       records: {},
 
-      addRecord: (userId: string, userName: string, tableNumber: number, timeMs: number, errors: number): RecordResult => {
+      addRecord: (userId: string, userName: string, tableNumber: number, timeMs: number, errors: number, challengeSource?: 'local' | 'global'): RecordResult => {
         const points = calculatePoints(timeMs, errors)
         const newRecord: TableRecord = {
           userId: userId,
@@ -54,6 +55,7 @@ export const useRecordsStore = create<RecordsStore>()(
           errors,
           points,
           date: Date.now(),
+          ...(challengeSource ? { challengeSource } : {}),
         }
 
         const tableRecords = get().records[tableNumber] || []

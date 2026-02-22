@@ -37,6 +37,7 @@ const PLANET_COLORS: Record<number, string> = {
 
 // Hex colors for SVG donut chart (matching PLANET_COLORS)
 const PLANET_HEX: Record<number, string> = {
+  0: '#f59e0b', // amber-500 (desafío)
   2: '#ef4444', // red-500
   3: '#f97316', // orange-500
   4: '#eab308', // yellow-500
@@ -104,6 +105,7 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
   const [globalMistakes, setGlobalMistakes] = useState<MistakeEntry[]>([])
   const [isLoadingMistakes, setIsLoadingMistakes] = useState(false)
   const [mistakesError, setMistakesError] = useState<string | null>(null)
+  const [drillDownTable, setDrillDownTable] = useState<number | null>(null)
 
   const planets = useGameStore((state) => state.planets)
   const totalStars = useGameStore((state) => state.totalStars)
@@ -141,6 +143,32 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
     }
     return allUserRecords.sort((a, b) => a.date - b.date)
   }, [records, currentUserId])
+
+  // Challenge stats for current user
+  const challengeStats = useMemo(() => {
+    if (!currentUserId) return null
+    const challengeRecords = (records[CHALLENGE_TABLE] || []).filter((r) => r.userId === currentUserId)
+    if (challengeRecords.length === 0) return null
+
+    const totalAttempts = challengeRecords.length
+    const avgPoints = Math.round(challengeRecords.reduce((s, r) => s + r.points, 0) / totalAttempts)
+    const bestPoints = Math.min(...challengeRecords.map((r) => r.points))
+    const localCount = challengeRecords.filter((r) => r.challengeSource !== 'global').length
+    const globalCount = challengeRecords.filter((r) => r.challengeSource === 'global').length
+
+    return { totalAttempts, avgPoints, bestPoints, localCount, globalCount }
+  }, [records, currentUserId])
+
+  // Unique tables present in evolution data (for legend)
+  const evolutionTables = useMemo(() => {
+    return [...new Set(evolutionData.map((d) => d.table))].sort((a, b) => a - b)
+  }, [evolutionData])
+
+  // Drill-down data for a specific table
+  const drillDownData = useMemo(() => {
+    if (drillDownTable === null) return []
+    return evolutionData.filter((d) => d.table === drillDownTable)
+  }, [evolutionData, drillDownTable])
 
   // Improvement % (last 7 days vs 8-21 days ago)
   const improvement = useMemo(() => {
@@ -187,6 +215,7 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
       setGlobalError(null)
       setGlobalMistakes([])
       setMistakesError(null)
+      setDrillDownTable(null)
     }
   }, [isOpen])
 
@@ -292,7 +321,18 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
                       }`}
                     >
                       <span className="w-5 text-center shrink-0">{getMedal(index + 1)}</span>
-                      <span className="flex-1 text-white/80 truncate font-medium">{record.userName}</span>
+                      <span className="flex-1 text-white/80 truncate font-medium">
+                        {record.userName}
+                        {isChallenge && record.challengeSource && (
+                          <span className={`ml-1 text-[8px] px-1 rounded ${
+                            record.challengeSource === 'global'
+                              ? 'bg-purple-500/20 text-purple-300'
+                              : 'bg-blue-500/20 text-blue-300'
+                          }`}>
+                            {record.challengeSource === 'global' ? '🌍' : '📱'}
+                          </span>
+                        )}
+                      </span>
                       <span className="w-10 text-right text-white/50 font-mono text-[10px]">
                         {timeSeconds}s
                       </span>
@@ -597,7 +637,7 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => { setActiveTab(tab.id); setDrillDownTable(null) }}
                     className={`
                       flex-1 px-4 py-3 text-sm font-medium transition-colors
                       ${activeTab === tab.id
@@ -769,95 +809,299 @@ export function StatisticsPanel({ isOpen, onClose, onStartChallenge }: Statistic
                         </div>
                       )}
 
-                      {/* Evolution Chart */}
-                      {evolutionData.length >= 2 ? (
+                      {/* Challenge Stats */}
+                      {challengeStats && (
                         <div className="mt-6">
-                          <h3 className="text-white/70 text-sm font-semibold mb-3">Tu evolución</h3>
+                          <h3 className="text-white/70 text-sm font-semibold mb-3">Desafío</h3>
                           <div className="bg-space-dark rounded-xl p-3">
-                            <svg viewBox="0 0 300 140" className="w-full" preserveAspectRatio="xMidYMid meet">
-                              {(() => {
-                                const pad = { top: 15, right: 15, bottom: 25, left: 35 }
-                                const w = 300 - pad.left - pad.right
-                                const h = 140 - pad.top - pad.bottom
-                                const minDate = evolutionData[0].date
-                                const maxDate = evolutionData[evolutionData.length - 1].date
-                                const dateRange = maxDate - minDate || 1
-                                const allPts = evolutionData.map((d) => d.points)
-                                const minPts = Math.min(...allPts)
-                                const maxPts = Math.max(...allPts)
-                                const ptsRange = maxPts - minPts || 1
-
-                                const toX = (date: number) => pad.left + ((date - minDate) / dateRange) * w
-                                // Invert Y: lower points = higher position = better
-                                const toY = (pts: number) => pad.top + ((pts - minPts) / ptsRange) * h
-
-                                const linePoints = evolutionData.map((d) => `${toX(d.date)},${toY(d.points)}`).join(' ')
-
-                                // Y-axis labels
-                                const yLabels = [minPts, Math.round((minPts + maxPts) / 2), maxPts]
-                                // X-axis: first and last date
-                                const fmtShort = (ts: number) => {
-                                  const d = new Date(ts)
-                                  return `${d.getDate()}/${d.getMonth() + 1}`
-                                }
-
-                                return (
-                                  <>
-                                    {/* Grid lines */}
-                                    {yLabels.map((pts) => (
-                                      <line key={pts} x1={pad.left} x2={300 - pad.right} y1={toY(pts)} y2={toY(pts)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-                                    ))}
-                                    {/* Y-axis labels */}
-                                    {yLabels.map((pts) => (
-                                      <text key={`label-${pts}`} x={pad.left - 4} y={toY(pts) + 3} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end">{pts}s</text>
-                                    ))}
-                                    {/* X-axis labels */}
-                                    <text x={pad.left} y={140 - 4} fill="rgba(255,255,255,0.35)" fontSize="8">{fmtShort(minDate)}</text>
-                                    <text x={300 - pad.right} y={140 - 4} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end">{fmtShort(maxDate)}</text>
-                                    {/* Trend line */}
-                                    <polyline points={linePoints} fill="none" stroke="rgba(251,191,36,0.4)" strokeWidth="1.5" />
-                                    {/* Data points */}
-                                    {evolutionData.map((d, i) => (
-                                      <circle
-                                        key={i}
-                                        cx={toX(d.date)}
-                                        cy={toY(d.points)}
-                                        r="3"
-                                        fill={PLANET_HEX[d.table] || '#fbbf24'}
-                                        stroke="rgba(0,0,0,0.3)"
-                                        strokeWidth="0.5"
-                                      />
-                                    ))}
-                                  </>
-                                )
-                              })()}
-                            </svg>
-
-                            {/* Improvement message */}
-                            {improvement && (
-                              <div className="text-center mt-2">
-                                {improvement.pct > 3 ? (
-                                  <p className="text-success text-sm font-medium">
-                                    ↑ {improvement.pct}% más rápido que hace 2 semanas
-                                  </p>
-                                ) : improvement.pct < -3 ? (
-                                  <p className="text-warning text-sm font-medium">
-                                    ↓ {Math.abs(improvement.pct)}% más lento que hace 2 semanas
-                                  </p>
-                                ) : (
-                                  <p className="text-white/50 text-sm">
-                                    Similar a hace 2 semanas
-                                  </p>
-                                )}
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs bg-gradient-to-br from-warning to-orange-600">
+                                ⚡
+                              </div>
+                              <span className="text-white font-medium text-sm">Modo Desafío</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                              <div>
+                                <p className="text-white/50 text-[10px]">Partidas</p>
+                                <p className="text-white font-bold text-sm">{challengeStats.totalAttempts}</p>
+                              </div>
+                              <div>
+                                <p className="text-white/50 text-[10px]">Mejor</p>
+                                <p className="text-gold font-bold text-sm">{challengeStats.bestPoints}s</p>
+                              </div>
+                              <div>
+                                <p className="text-white/50 text-[10px]">Media</p>
+                                <p className="text-white font-bold text-sm">{challengeStats.avgPoints}s</p>
+                              </div>
+                            </div>
+                            {(challengeStats.localCount > 0 || challengeStats.globalCount > 0) && (
+                              <div className="flex justify-center gap-3 mt-2 text-[10px] text-white/40">
+                                {challengeStats.localCount > 0 && <span>📱 {challengeStats.localCount} local</span>}
+                                {challengeStats.globalCount > 0 && <span>🌍 {challengeStats.globalCount} global</span>}
                               </div>
                             )}
                           </div>
                         </div>
-                      ) : evolutionData.length > 0 ? (
-                        <div className="mt-6 text-center text-white/40 text-xs py-3">
-                          Juega más partidas para ver tu evolución
-                        </div>
-                      ) : null}
+                      )}
+
+                      {/* Evolution Chart / Drill-Down */}
+                      <AnimatePresence mode="wait">
+                        {drillDownTable !== null && drillDownData.length > 0 ? (
+                          <motion.div
+                            key={`drilldown-${drillDownTable}`}
+                            className="mt-6"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                          >
+                            {/* Drill-down header */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <motion.button
+                                onClick={() => setDrillDownTable(null)}
+                                className="w-7 h-7 bg-space-dark rounded-full flex items-center justify-center text-white/60 hover:text-white"
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                ←
+                              </motion.button>
+                              <span
+                                className="w-3 h-3 rounded-full inline-block"
+                                style={{ backgroundColor: PLANET_HEX[drillDownTable] || '#fbbf24' }}
+                              />
+                              <h3 className="text-white/70 text-sm font-semibold">
+                                {drillDownTable === CHALLENGE_TABLE ? 'Desafío' : `Tabla del ${drillDownTable}`}
+                              </h3>
+                              <span className="text-white/40 text-[10px] ml-auto">{drillDownData.length} intentos</span>
+                            </div>
+
+                            <div className="bg-space-dark rounded-xl p-3">
+                              <svg viewBox="0 0 300 160" className="w-full" preserveAspectRatio="xMidYMid meet">
+                                {(() => {
+                                  const pad = { top: 15, right: 15, bottom: 30, left: 35 }
+                                  const w = 300 - pad.left - pad.right
+                                  const h = 160 - pad.top - pad.bottom
+                                  const count = drillDownData.length
+                                  const allPts = drillDownData.map((d) => d.points)
+                                  const minPts = Math.min(...allPts)
+                                  const maxPts = Math.max(...allPts)
+                                  const ptsRange = maxPts - minPts || 1
+                                  const tableColor = PLANET_HEX[drillDownTable] || '#fbbf24'
+
+                                  const toX = (index: number) => pad.left + (index / Math.max(count - 1, 1)) * w
+                                  const toY = (pts: number) => pad.top + ((pts - minPts) / ptsRange) * h
+
+                                  const linePoints = drillDownData.map((d, i) => `${toX(i)},${toY(d.points)}`).join(' ')
+
+                                  const yLabels = [minPts, Math.round((minPts + maxPts) / 2), maxPts]
+                                  const fmtShort = (ts: number) => {
+                                    const dt = new Date(ts)
+                                    return `${dt.getDate()}/${dt.getMonth() + 1}`
+                                  }
+
+                                  // Linear regression for trend line
+                                  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0
+                                  drillDownData.forEach((d, i) => {
+                                    sumX += i; sumY += d.points; sumXY += i * d.points; sumX2 += i * i
+                                  })
+                                  const slope = count > 1 ? (count * sumXY - sumX * sumY) / (count * sumX2 - sumX * sumX) : 0
+                                  const intercept = (sumY - slope * sumX) / count
+                                  const trendStart = intercept
+                                  const trendEnd = intercept + slope * (count - 1)
+
+                                  return (
+                                    <>
+                                      {/* Grid lines */}
+                                      {yLabels.map((pts) => (
+                                        <line key={pts} x1={pad.left} x2={300 - pad.right} y1={toY(pts)} y2={toY(pts)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                                      ))}
+                                      {/* Y-axis labels */}
+                                      {yLabels.map((pts) => (
+                                        <text key={`label-${pts}`} x={pad.left - 4} y={toY(pts) + 3} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end">{pts}s</text>
+                                      ))}
+                                      {/* X-axis date labels */}
+                                      <text x={pad.left} y={160 - 4} fill="rgba(255,255,255,0.35)" fontSize="8">
+                                        {fmtShort(drillDownData[0].date)}
+                                      </text>
+                                      <text x={300 - pad.right} y={160 - 4} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end">
+                                        {fmtShort(drillDownData[drillDownData.length - 1].date)}
+                                      </text>
+                                      <text x={150} y={160 - 4} fill="rgba(255,255,255,0.25)" fontSize="7" textAnchor="middle">
+                                        {count} intentos
+                                      </text>
+                                      {/* Trend line (dashed) */}
+                                      {count > 1 && (
+                                        <line
+                                          x1={toX(0)} y1={toY(trendStart)}
+                                          x2={toX(count - 1)} y2={toY(trendEnd)}
+                                          stroke={tableColor}
+                                          strokeWidth="1"
+                                          strokeDasharray="4 2"
+                                          opacity="0.4"
+                                        />
+                                      )}
+                                      {/* Data line */}
+                                      <polyline points={linePoints} fill="none" stroke={tableColor} strokeWidth="1.5" opacity="0.6" />
+                                      {/* Data points */}
+                                      {drillDownData.map((d, i) => (
+                                        <circle
+                                          key={i}
+                                          cx={toX(i)}
+                                          cy={toY(d.points)}
+                                          r="3.5"
+                                          fill={tableColor}
+                                          stroke="rgba(0,0,0,0.3)"
+                                          strokeWidth="0.5"
+                                        />
+                                      ))}
+                                    </>
+                                  )
+                                })()}
+                              </svg>
+
+                              {/* Stats summary */}
+                              <div className="grid grid-cols-3 gap-2 mt-2 text-center">
+                                <div>
+                                  <p className="text-white/40 text-[10px]">Mejor</p>
+                                  <p className="text-gold font-bold text-xs">{Math.min(...drillDownData.map((d) => d.points))}s</p>
+                                </div>
+                                <div>
+                                  <p className="text-white/40 text-[10px]">Media</p>
+                                  <p className="text-white font-bold text-xs">
+                                    {Math.round(drillDownData.reduce((s, d) => s + d.points, 0) / drillDownData.length)}s
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-white/40 text-[10px]">Último</p>
+                                  <p className="text-white font-bold text-xs">{drillDownData[drillDownData.length - 1].points}s</p>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ) : evolutionData.length >= 2 ? (
+                          <motion.div
+                            key="overview"
+                            className="mt-6"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                          >
+                            <h3 className="text-white/70 text-sm font-semibold mb-3">Tu evolución</h3>
+                            <div className="bg-space-dark rounded-xl p-3">
+                              <svg viewBox="0 0 300 140" className="w-full" preserveAspectRatio="xMidYMid meet">
+                                {(() => {
+                                  const pad = { top: 15, right: 15, bottom: 25, left: 35 }
+                                  const w = 300 - pad.left - pad.right
+                                  const h = 140 - pad.top - pad.bottom
+                                  const minDate = evolutionData[0].date
+                                  const maxDate = evolutionData[evolutionData.length - 1].date
+                                  const dateRange = maxDate - minDate || 1
+                                  const allPts = evolutionData.map((d) => d.points)
+                                  const minPts = Math.min(...allPts)
+                                  const maxPts = Math.max(...allPts)
+                                  const ptsRange = maxPts - minPts || 1
+
+                                  const toX = (date: number) => pad.left + ((date - minDate) / dateRange) * w
+                                  const toY = (pts: number) => pad.top + ((pts - minPts) / ptsRange) * h
+
+                                  const linePoints = evolutionData.map((d) => `${toX(d.date)},${toY(d.points)}`).join(' ')
+
+                                  const yLabels = [minPts, Math.round((minPts + maxPts) / 2), maxPts]
+                                  const fmtShort = (ts: number) => {
+                                    const d = new Date(ts)
+                                    return `${d.getDate()}/${d.getMonth() + 1}`
+                                  }
+
+                                  return (
+                                    <>
+                                      {/* Grid lines */}
+                                      {yLabels.map((pts) => (
+                                        <line key={pts} x1={pad.left} x2={300 - pad.right} y1={toY(pts)} y2={toY(pts)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                                      ))}
+                                      {/* Y-axis labels */}
+                                      {yLabels.map((pts) => (
+                                        <text key={`label-${pts}`} x={pad.left - 4} y={toY(pts) + 3} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end">{pts}s</text>
+                                      ))}
+                                      {/* X-axis labels */}
+                                      <text x={pad.left} y={140 - 4} fill="rgba(255,255,255,0.35)" fontSize="8">{fmtShort(minDate)}</text>
+                                      <text x={300 - pad.right} y={140 - 4} fill="rgba(255,255,255,0.35)" fontSize="8" textAnchor="end">{fmtShort(maxDate)}</text>
+                                      {/* Trend line */}
+                                      <polyline points={linePoints} fill="none" stroke="rgba(251,191,36,0.4)" strokeWidth="1.5" />
+                                      {/* Hit targets (larger for touch) */}
+                                      {evolutionData.map((d, i) => (
+                                        <circle
+                                          key={`hit-${i}`}
+                                          cx={toX(d.date)}
+                                          cy={toY(d.points)}
+                                          r="8"
+                                          fill="transparent"
+                                          className="cursor-pointer"
+                                          onClick={() => setDrillDownTable(d.table)}
+                                        />
+                                      ))}
+                                      {/* Visible data points */}
+                                      {evolutionData.map((d, i) => (
+                                        <circle
+                                          key={i}
+                                          cx={toX(d.date)}
+                                          cy={toY(d.points)}
+                                          r="3"
+                                          fill={PLANET_HEX[d.table] || '#fbbf24'}
+                                          stroke="rgba(0,0,0,0.3)"
+                                          strokeWidth="0.5"
+                                          className="pointer-events-none"
+                                        />
+                                      ))}
+                                    </>
+                                  )
+                                })()}
+                              </svg>
+
+                              {/* Legend */}
+                              {evolutionTables.length > 0 && (
+                                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2">
+                                  {evolutionTables.map((table) => (
+                                    <button
+                                      key={table}
+                                      className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                                      onClick={() => setDrillDownTable(table)}
+                                    >
+                                      <span
+                                        className="w-2.5 h-2.5 rounded-full inline-block"
+                                        style={{ backgroundColor: PLANET_HEX[table] || '#fbbf24' }}
+                                      />
+                                      <span className="text-white/70 text-[10px] underline decoration-dotted">
+                                        {table === CHALLENGE_TABLE ? 'Desafío' : `Tabla ${table}`}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Improvement message */}
+                              {improvement && (
+                                <div className="text-center mt-2">
+                                  {improvement.pct > 3 ? (
+                                    <p className="text-success text-sm font-medium">
+                                      ↑ {improvement.pct}% más rápido que hace 2 semanas
+                                    </p>
+                                  ) : improvement.pct < -3 ? (
+                                    <p className="text-warning text-sm font-medium">
+                                      ↓ {Math.abs(improvement.pct)}% más lento que hace 2 semanas
+                                    </p>
+                                  ) : (
+                                    <p className="text-white/50 text-sm">
+                                      Similar a hace 2 semanas
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        ) : evolutionData.length > 0 ? (
+                          <motion.div key="not-enough" className="mt-6 text-center text-white/40 text-xs py-3">
+                            Juega más partidas para ver tu evolución
+                          </motion.div>
+                        ) : null}
+                      </AnimatePresence>
                     </motion.div>
                   ) : (
                     <motion.div

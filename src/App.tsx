@@ -138,7 +138,8 @@ function App() {
           currentUser.name,
           CHALLENGE_TABLE,
           result.totalTimeMs,
-          result.wrongCount
+          result.wrongCount,
+          lastChallengeSource
         )
         setLastRecordResult(recordResult)
         setLastTableNumber(CHALLENGE_TABLE)
@@ -201,7 +202,7 @@ function App() {
     }
 
     setCurrentScreen('celebration')
-  }, [activePlanetId, updatePlanetStars, isFirstCompletion, planets, currentUserId, currentUser, addRecord])
+  }, [activePlanetId, updatePlanetStars, isFirstCompletion, planets, currentUserId, currentUser, addRecord, lastChallengeSource])
 
   const handleCelebrationContinue = useCallback(() => {
     setActivePlanetId(null)
@@ -244,8 +245,10 @@ function App() {
   }, [resetProgress])
 
   const [lastChallengeMode, setLastChallengeMode] = useState(false)
+  const [lastChallengeSource, setLastChallengeSource] = useState<'local' | 'global'>('local')
 
   const handleStartChallenge = useCallback(async (source: 'local' | 'global') => {
+    setLastChallengeSource(source)
     let mistakes: { table: number; multiplier: number; count: number }[]
 
     if (source === 'local') {
