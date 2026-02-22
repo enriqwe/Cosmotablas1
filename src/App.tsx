@@ -81,6 +81,8 @@ function App() {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [showGalaxyCelebration, setShowGalaxyCelebration] = useState(false)
+  const [lastChallengeMode, setLastChallengeMode] = useState(false)
+  const [lastChallengeSource, setLastChallengeSource] = useState<'local' | 'global'>('local')
 
   const handleStartGame = useCallback(() => {
     // Sync game progress before reload.
@@ -243,9 +245,6 @@ function App() {
     setToastMessage('Progreso reiniciado')
     setTimeout(() => setToastMessage(null), 2500)
   }, [resetProgress])
-
-  const [lastChallengeMode, setLastChallengeMode] = useState(false)
-  const [lastChallengeSource, setLastChallengeSource] = useState<'local' | 'global'>('local')
 
   const handleStartChallenge = useCallback(async (source: 'local' | 'global') => {
     setLastChallengeSource(source)
