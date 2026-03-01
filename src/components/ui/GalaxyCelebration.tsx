@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 interface GalaxyCelebrationProps {
   onDismiss: () => void
@@ -14,12 +14,17 @@ const FALLING_STARS = Array.from({ length: 24 }, (_, i) => ({
   size: 10 + Math.random() * 16,
 }))
 
+// Grace period before allowing dismissal (seconds)
+const DISMISS_GRACE_PERIOD = 4
+
 export function GalaxyCelebration({ onDismiss }: GalaxyCelebrationProps) {
-  // Auto-dismiss after 10 seconds
+  const [canDismiss, setCanDismiss] = useState(false)
+
+  // Enable dismissal after grace period
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 10000)
+    const timer = setTimeout(() => setCanDismiss(true), DISMISS_GRACE_PERIOD * 1000)
     return () => clearTimeout(timer)
-  }, [onDismiss])
+  }, [])
 
   return (
     <motion.div
@@ -28,7 +33,7 @@ export function GalaxyCelebration({ onDismiss }: GalaxyCelebrationProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      onClick={onDismiss}
+      onClick={canDismiss ? onDismiss : undefined}
     >
       {/* Dark backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
@@ -178,15 +183,19 @@ export function GalaxyCelebration({ onDismiss }: GalaxyCelebrationProps) {
           ))}
         </motion.div>
 
-        {/* Tap to continue */}
-        <motion.p
-          className="text-sm text-white/40"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 0.8, 0.4, 0.8] }}
-          transition={{ delay: 2.5, duration: 2, repeat: Infinity }}
-        >
-          Toca para continuar
-        </motion.p>
+        {/* Continue button — only visible after grace period */}
+        {canDismiss && (
+          <motion.button
+            onClick={onDismiss}
+            className="mt-2 px-8 py-3 bg-gold/20 border-2 border-gold/60 text-gold rounded-full text-lg font-semibold"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Continuar
+          </motion.button>
+        )}
       </motion.div>
     </motion.div>
   )

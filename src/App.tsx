@@ -214,14 +214,12 @@ function App() {
       setNewlyUnlockedPlanetId(null)
     }, 4000)
 
-    // Galaxy celebration when all planets are completed for the first time
-    if (isFirstCompletion) {
-      const allPlanets = useGameStore.getState().planets
-      if (allPlanets.every(p => p.status === 'completed')) {
-        setTimeout(() => setShowGalaxyCelebration(true), 800)
-      }
+    // Galaxy celebration when all planets are completed
+    const allPlanets = useGameStore.getState().planets
+    if (allPlanets.every(p => p.status === 'completed')) {
+      setTimeout(() => setShowGalaxyCelebration(true), 800)
     }
-  }, [isFirstCompletion])
+  }, [])
 
   const handleRetry = useCallback(() => {
     if (activePlanetId === null) return
