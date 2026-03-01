@@ -68,7 +68,7 @@ export function GalaxyCelebration({ onDismiss }: GalaxyCelebrationProps) {
         viewBox="0 0 500 700"
         preserveAspectRatio="xMidYMax meet"
         initial={{ opacity: 0, y: 80 }}
-        animate={{ opacity: [0, 0.12, 0.08], y: [80, 0, 0] }}
+        animate={{ opacity: [0, 0.35, 0.25], y: [80, 0, 0] }}
         transition={{ duration: 3, delay: 0.3, ease: 'easeOut' }}
       >
         {/* Helmet dome */}
