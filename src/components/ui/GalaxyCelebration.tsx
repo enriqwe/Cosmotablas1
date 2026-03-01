@@ -60,58 +60,62 @@ export function GalaxyCelebration({ onDismiss }: GalaxyCelebrationProps) {
         </motion.span>
       ))}
 
-      {/* Giant Darth Vader silhouette — background presence rising from below */}
-      <motion.svg
-        className="absolute bottom-0 left-1/2 pointer-events-none"
-        style={{ transform: 'translateX(-50%)' }}
-        width="120%"
-        viewBox="0 0 500 700"
-        preserveAspectRatio="xMidYMax meet"
-        initial={{ opacity: 0, y: 80 }}
-        animate={{ opacity: [0, 0.35, 0.25], y: [80, 0, 0] }}
-        transition={{ duration: 3, delay: 0.3, ease: 'easeOut' }}
+      {/* Darth Vader helmet — dramatic scale from center */}
+      <motion.div
+        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        initial={{ opacity: 0, scale: 0.05 }}
+        animate={{ opacity: [0, 0.4, 0.3], scale: [0.05, 1.8, 1.5] }}
+        transition={{ duration: 4, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Helmet dome */}
-        <path
-          d="M250 40 C140 40 60 130 60 240 C60 280 70 315 88 340
-             L88 420 C88 470 130 510 185 520 L185 580 L150 580 L120 700
-             L380 700 L350 580 L315 580 L315 520 C370 510 412 470 412 420
-             L412 340 C430 315 440 280 440 240 C440 130 360 40 250 40 Z"
-          fill="white"
-        />
-        {/* Left eye triangle */}
-        <path
-          d="M155 210 C155 210 185 185 215 195 L215 235 L155 250 Z"
-          fill="black"
-        />
-        {/* Right eye triangle */}
-        <path
-          d="M345 210 C345 210 315 185 285 195 L285 235 L345 250 Z"
-          fill="black"
-        />
-        {/* Nose ridge */}
-        <path
-          d="M235 250 L265 250 L260 290 L240 290 Z"
-          fill="black"
-        />
-        {/* Mouth grille lines */}
-        <path d="M195 310 L305 310 L298 325 L202 325 Z" fill="black" />
-        <path d="M200 335 L300 335 L295 348 L205 348 Z" fill="black" />
-        <path d="M208 358 L292 358 L288 370 L212 370 Z" fill="black" />
-        <path d="M215 380 L285 380 L282 390 L218 390 Z" fill="black" />
-        {/* Helmet side vents */}
-        <path d="M88 280 L60 270 L55 300 L88 310 Z" fill="white" />
-        <path d="M412 280 L440 270 L445 300 L412 310 Z" fill="white" />
-        {/* Chest panel */}
-        <path
-          d="M200 530 L300 530 L310 620 L190 620 Z"
-          fill="black"
-        />
-        <rect x="210" y="545" width="30" height="12" rx="2" fill="#333" />
-        <rect x="210" y="565" width="30" height="12" rx="2" fill="#333" />
-        <rect x="260" y="545" width="30" height="12" rx="2" fill="#333" />
-        <rect x="260" y="565" width="30" height="12" rx="2" fill="#333" />
-      </motion.svg>
+        <svg
+          viewBox="0 0 400 480"
+          className="w-full h-full max-w-none"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          {/* Helmet outer shape */}
+          <path
+            d="M200 8
+               C200 8 168 8 140 25 C108 45 78 80 60 125
+               C44 165 35 210 34 250
+               L28 258 C22 266 16 280 14 295
+               C12 312 16 332 26 342 L38 348
+               L40 375 C38 395 42 418 58 435
+               C74 452 98 462 125 465
+               L155 463 L175 466 L195 470 L200 472
+               L205 470 L225 466 L245 463 L275 465
+               C302 462 326 452 342 435
+               C358 418 362 395 360 375 L362 348
+               L374 342 C384 332 388 312 386 295
+               C384 280 378 266 372 258 L366 250
+               C365 210 356 165 340 125
+               C322 80 292 45 260 25
+               C232 8 200 8 200 8 Z"
+            fill="white"
+          />
+          {/* Helmet center ridge */}
+          <line x1="200" y1="8" x2="200" y2="160" stroke="black" strokeWidth="4" opacity="0.3" />
+          {/* Forehead brow ridge */}
+          <path d="M80 155 L200 140 L320 155 L200 148 Z" fill="black" opacity="0.2" />
+          {/* Left eye — angular trapezoid */}
+          <path d="M95 195 L190 175 L192 232 L88 255 Z" fill="black" />
+          {/* Right eye — angular trapezoid */}
+          <path d="M305 195 L210 175 L208 232 L312 255 Z" fill="black" />
+          {/* Nose bridge */}
+          <path d="M192 232 L208 232 L205 282 L195 282 Z" fill="black" />
+          {/* Cheek lines */}
+          <path d="M88 255 L50 265 L48 280 L85 272 Z" fill="black" opacity="0.3" />
+          <path d="M312 255 L350 265 L352 280 L315 272 Z" fill="black" opacity="0.3" />
+          {/* Mouth grille — triangular respirator */}
+          <path d="M160 295 L240 295 L232 318 L168 318 Z" fill="black" />
+          <path d="M168 328 L232 328 L225 350 L175 350 Z" fill="black" />
+          <path d="M175 360 L225 360 L220 380 L180 380 Z" fill="black" />
+          <path d="M182 390 L218 390 L214 406 L186 406 Z" fill="black" />
+          <path d="M188 416 L212 416 L208 428 L192 428 Z" fill="black" />
+          {/* Side panels / jaw lines */}
+          <path d="M34 250 L14 295 L26 342 L38 348 L40 300 Z" fill="white" />
+          <path d="M366 250 L386 295 L374 342 L362 348 L360 300 Z" fill="white" />
+        </svg>
+      </motion.div>
 
       {/* Golden radial burst (on top of Vader) */}
       <motion.div
@@ -119,11 +123,11 @@ export function GalaxyCelebration({ onDismiss }: GalaxyCelebrationProps) {
         style={{
           width: 600,
           height: 600,
-          background: 'radial-gradient(circle, rgba(251,191,36,0.15) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(251,191,36,0.18) 0%, transparent 70%)',
         }}
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: [0, 1.5, 1.2], opacity: [0, 0.8, 0.4] }}
-        transition={{ duration: 2, delay: 0.2 }}
+        animate={{ scale: [0, 1.8, 1.4], opacity: [0, 0.9, 0.5] }}
+        transition={{ duration: 2.5, delay: 0.5 }}
       />
 
       {/* Main content */}
