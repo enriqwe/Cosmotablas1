@@ -6,16 +6,17 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean
+  error: Error | null
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
-    this.state = { hasError: false }
+    this.state = { hasError: false, error: null }
   }
 
-  static getDerivedStateFromError(): ErrorBoundaryState {
-    return { hasError: true }
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
@@ -34,9 +35,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <h1 className="text-2xl font-bold mb-4 text-center">
             Algo salió mal
           </h1>
-          <p className="text-white/70 mb-8 text-center max-w-sm">
+          <p className="text-white/70 mb-4 text-center max-w-sm">
             Ha ocurrido un error inesperado. Por favor, recarga la página para continuar tu aventura espacial.
           </p>
+          {this.state.error && (
+            <pre className="text-red-400 text-xs mb-8 max-w-sm overflow-auto bg-black/50 p-3 rounded-lg max-h-40">
+              {this.state.error.message}
+              {'\n'}
+              {this.state.error.stack?.split('\n').slice(0, 5).join('\n')}
+            </pre>
+          )}
           <button
             onClick={this.handleReload}
             className="px-8 py-3 bg-space-blue text-white rounded-full text-lg font-semibold hover:bg-blue-600 transition-colors"
