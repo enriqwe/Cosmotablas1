@@ -33,7 +33,7 @@ export function GalaxyCelebration({ onDismiss }: GalaxyCelebrationProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      onClick={canDismiss ? onDismiss : undefined}
+      onClick={() => canDismiss && onDismiss()}
     >
       {/* Dark backdrop */}
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
